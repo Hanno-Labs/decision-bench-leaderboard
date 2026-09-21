@@ -1,0 +1,84 @@
+{
+	"sections": [
+		{
+			"name": "General Purpose",
+			"open": true,
+			"benchmarks": ["DecisionBench(eng, v1)"]
+		},
+		{
+			"name": "Domain-Specific",
+			"open": true,
+			"benchmarks": ["DecisionBench(Legal, eng, v1)"]
+		},
+		{
+			"name": "Reasoning",
+			"open": true,
+			"benchmarks": ["DecisionBench(Reasoning, eng, v1)"]
+		}
+	],
+	"benchmarks": [
+		{
+			"name": "DecisionBench(eng, v1)",
+			"displayName": "DecisionBench(eng, v1)",
+			"description": "The canonical English DecisionBench suite across application families and decision primitives. Reasoning-track rows are scored separately.",
+			"icon": "◈",
+			"languages": ["English"],
+			"domains": [],
+			"modalities": ["text"],
+			"score": {
+				"view": "overall",
+				"exclude": [{ "view": "family:reasoning", "expectedRows": 1200 }]
+			},
+			"taskViews": [
+				"family:action_selection",
+				"family:bounded_extraction",
+				"family:completion_assessment",
+				"family:content_classification",
+				"family:document_classification",
+				"family:document_record_classification",
+				"family:document_workflows",
+				"family:entity_alignment",
+				"family:function_agent_skill_routing",
+				"family:guardrails_moderation",
+				"family:navigation",
+				"family:record_classification",
+				"family:retrieval_ranking",
+				"family:retrieval_verification",
+				"family:review_scoring",
+				"family:risk_scoring",
+				"family:routing",
+				"family:routing_triage",
+				"family:rubric_scoring_prioritization",
+				"family:semantic_filtering",
+				"family:target_selection",
+				"family:triage",
+				"family:verification"
+			],
+			"featured": { "key": "english", "label": "English", "order": 0 }
+		},
+		{
+			"name": "DecisionBench(Legal, eng, v1)",
+			"displayName": "DecisionBench(Legal, eng, v1)",
+			"description": "The frozen English legal-domain subset of DecisionBench.",
+			"icon": "◇",
+			"languages": ["English"],
+			"domains": ["Legal"],
+			"modalities": ["text"],
+			"score": { "view": "domain:legal", "expectedRows": 2222 },
+			"taskViews": ["domain:legal"],
+			"featured": { "key": "legal", "label": "Legal", "order": 1 }
+		},
+		{
+			"name": "DecisionBench(Reasoning, eng, v1)",
+			"displayName": "DecisionBench(Reasoning, eng, v1)",
+			"description": "The separate English reasoning track. Unsupported and error rows count as misses.",
+			"icon": "◆",
+			"languages": ["English"],
+			"domains": ["Evidence reasoning", "Finance", "Logic", "Multi-hop search"],
+			"modalities": ["text"],
+			"score": { "view": "family:reasoning", "expectedRows": 1200 },
+			"taskViews": ["family:reasoning"],
+			"featured": { "key": "reasoning", "label": "Reasoning", "order": 2 }
+		}
+	]
+}

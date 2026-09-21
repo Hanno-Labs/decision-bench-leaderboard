@@ -215,7 +215,7 @@
 
 <ShareMeta
 	title="All benchmarks"
-	description={`DecisionBench and its primitive, family, and domain views — ${allBenchmarks.length || '1'} independently filterable benchmark slices.`}
+	description={`${allBenchmarks.length || '1'} curated DecisionBench suites, with task and domain analysis available inside each suite.`}
 />
 
 <div class="layout-sidebar">
@@ -223,8 +223,8 @@
 		<header class="hero">
 			<h1>All benchmarks</h1>
 			<p class="lead">
-				Explore the complete DecisionBench result matrix or focus on a decision primitive, use-case
-				family, or application domain.
+				Choose a curated, versioned DecisionBench suite. Open a suite to analyze its task and domain
+				results.
 			</p>
 			<p class="contribute-note">
 				To contribute a benchmark view, follow the

@@ -4,7 +4,7 @@ import type { Locator, Page } from '@playwright/test';
 // `pinnedModels` round-trip through `?pin=`. Regression guard for the
 // single remaining `string`-value caller of `updateUrl`.
 
-const BENCH_SLUG = encodeURIComponent('DecisionBench');
+const BENCH_SLUG = encodeURIComponent('DecisionBench(eng, v1)');
 
 // Benchmark detail pre-mounts the per-task / per-language panes (`data-prepaint`)
 // so first-tab-click is instant. All three tables key off the same pinned set,

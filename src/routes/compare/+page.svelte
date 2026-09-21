@@ -719,7 +719,7 @@
 
 <ShareMeta
 	title="Compare models"
-	description="Compare up to four decision models across DecisionBench, its decision primitives, application families, and domains."
+	description="Compare up to four decision models across curated DecisionBench suites and their task results."
 />
 
 <svelte:window onclick={onDocClick} onkeydown={onKey} />
