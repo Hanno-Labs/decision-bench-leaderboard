@@ -882,7 +882,7 @@
 						</span>
 					{/each}
 
-					{#if picked.length < MAX_PICKED}
+					{#if picked.length < MAX_PICKED && picked.length < primarySummary.rows.length}
 						<div class="picker" bind:this={pickerRoot}>
 							<button
 								type="button"

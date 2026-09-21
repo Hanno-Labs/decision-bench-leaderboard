@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
-const MAX_PICKED = 4;
+const MAX_PICKED = 3;
 const MAX_BENCHMARKS = 6;
 
 async function waitForCompareReady(page: Page) {
@@ -60,20 +60,18 @@ test.describe('/compare URL roundtrip (regression guard for repeated-key form)',
 		await expect(modelChipNames(page)).toHaveText(initialNames);
 	});
 
-	test('benchmark name with comma round-trips without double-encoding', async ({ page }) => {
-		// Default `MTEB(Multilingual, v2)` carries a literal comma — the old
-		// writer double-encoded it to `%252C` and the catalog couldn't resolve.
+	test('benchmark name round-trips without double-encoding', async ({ page }) => {
 		await page.goto('/compare');
 		await waitForCompareReady(page);
 		await expect(page).toHaveURL(/[?&]benchmark=/);
 
 		const url = await currentUrl(page);
-		expect(url.searchParams.getAll('benchmark')).toEqual(['MTEB(Multilingual, v2)']);
+		expect(url.searchParams.getAll('benchmark')).toEqual(['DecisionBench']);
 		expect(url.search).not.toContain('%25');
 
 		await page.goto(url.toString());
 		await waitForCompareReady(page);
-		await expect(benchChipNames(page).first()).toHaveText('MTEB(Multilingual, v2)');
+		await expect(benchChipNames(page).first()).toHaveText('DecisionBench');
 	});
 
 	test('adding a second benchmark writes two repeated `?benchmark=` pairs', async ({ page }) => {
@@ -83,7 +81,7 @@ test.describe('/compare URL roundtrip (regression guard for repeated-key form)',
 		await page.getByRole('button', { name: /Add benchmark/ }).click();
 		const dialog = page.getByRole('dialog', { name: 'Pick benchmark' });
 		await expect(dialog).toBeVisible();
-		await dialog.getByRole('button', { name: /MTEB\(eng, v2\)/ }).click();
+		await dialog.getByRole('button', { name: /Choice/ }).click();
 
 		await expect(benchChips(page)).toHaveCount(2);
 		await expect
@@ -92,15 +90,15 @@ test.describe('/compare URL roundtrip (regression guard for repeated-key form)',
 
 		const url = await currentUrl(page);
 		expect(url.searchParams.getAll('benchmark')).toEqual([
-			'MTEB(Multilingual, v2)',
-			'MTEB(eng, v2)'
+			'DecisionBench',
+			'DecisionBench / Primitive / Choice'
 		]);
 
 		await page.goto(url.toString());
 		await waitForCompareReady(page);
 		await expect(benchChips(page)).toHaveCount(2);
-		await expect(benchChipNames(page).nth(0)).toHaveText('MTEB(Multilingual, v2)');
-		await expect(benchChipNames(page).nth(1)).toHaveText('MTEB(eng, v2)');
+		await expect(benchChipNames(page).nth(0)).toHaveText('DecisionBench');
+		await expect(benchChipNames(page).nth(1)).toHaveText('Choice');
 	});
 
 	test('legacy comma-joined share links still hydrate (back-compat)', async ({ page }) => {
@@ -115,7 +113,7 @@ test.describe('/compare URL roundtrip (regression guard for repeated-key form)',
 			'/compare?model=' +
 			seededNames.map((n) => encodeURIComponent(n)).join('%2C') +
 			'&benchmark=' +
-			encodeURIComponent('MTEB(Multilingual, v2)');
+			encodeURIComponent('DecisionBench');
 
 		await page.goto(legacy);
 		await waitForCompareReady(page);
@@ -135,8 +133,8 @@ test.describe('/compare model picker', () => {
 			.click();
 		const dialog = page.getByRole('dialog', { name: 'Pick model' });
 		await expect(dialog).toBeVisible();
-		await dialog.getByPlaceholder(/Search models/).fill('Linq');
-		await dialog.getByRole('button', { name: /Linq-Embed-Mistral/ }).click();
+		await dialog.getByPlaceholder(/Search models/).fill('Nano');
+		await dialog.getByRole('button', { name: /NanoJev/ }).click();
 
 		await expect(modelChips(page)).toHaveCount(3);
 		await expect
@@ -144,7 +142,7 @@ test.describe('/compare model picker', () => {
 			.toBe(3);
 		const after = await modelChipNames(page).allTextContents();
 		expect(after.slice(0, 2)).toEqual(initial);
-		expect(after[2]).toBe('Linq-Embed-Mistral');
+		expect(after[2]).toBe('NanoJev');
 
 		await page.keyboard.press('Escape');
 		const third = modelChips(page).nth(2);
@@ -179,11 +177,10 @@ test.describe('/compare model picker', () => {
 		await expect(dialog).toBeVisible();
 
 		const before = await dialog.locator('.picker-row').count();
-		expect(before).toBeGreaterThan(2);
+		expect(before).toBeGreaterThan(0);
 
-		await dialog.getByPlaceholder(/Search models/).fill('Qwen');
-		// Three Qwen fixtures: 8B / 4B / 0.6B.
-		await expect(dialog.locator('.picker-row')).toHaveCount(3);
+		await dialog.getByPlaceholder(/Search models/).fill('Nano');
+		await expect(dialog.locator('.picker-row')).toHaveCount(1);
 
 		await dialog.getByPlaceholder(/Search models/).fill('xyzzy-not-a-real-model');
 		await expect(dialog.locator('.picker-empty')).toBeVisible();
@@ -218,7 +215,7 @@ test.describe('/compare benchmark picker', () => {
 
 		await page.getByRole('button', { name: /Add benchmark/ }).click();
 		const dialog = page.getByRole('dialog', { name: 'Pick benchmark' });
-		await dialog.getByRole('button', { name: /MTEB\(eng, v2\)/ }).click();
+		await dialog.getByRole('button', { name: /Choice/ }).click();
 		await page.keyboard.press('Escape');
 		await expect(benchChips(page)).toHaveCount(2);
 		await expect(
@@ -259,17 +256,13 @@ test.describe('/compare task picker', () => {
 		await page.getByRole('button', { name: /Add task/ }).click();
 		const dialog = page.getByRole('dialog', { name: 'Pick task' });
 		await expect(dialog).toBeVisible();
-		// Fixtures expose `Task_1..Task_132`; trailing space narrows the match.
-		await dialog.getByPlaceholder(/Search tasks/).fill('Task_1 ');
-		await dialog
-			.getByRole('button', { name: /^Task_1\b/ })
-			.first()
-			.click();
+		await dialog.getByPlaceholder(/Search tasks/).fill('Action Selection');
+		await dialog.getByRole('button', { name: /Family: Action Selection/ }).click();
 
 		await expect(taskChips(page)).toHaveCount(1);
 		await expect
 			.poll(async () => (await currentUrl(page)).searchParams.getAll('task'))
-			.toEqual(['Task_1']);
+			.toEqual(['Family: Action Selection']);
 
 		const url = await currentUrl(page);
 		await page.goto(url.toString());
@@ -282,12 +275,12 @@ test.describe('/compare deep-link seeding', () => {
 	test('?model=X seeds that exact pick without auto-replacing it', async ({ page }) => {
 		// No `?benchmark=` is passed — the back-compat effect derives one from
 		// /models/X/scores. The seeded pick must not get clobbered.
-		await page.goto('/compare?model=' + encodeURIComponent('qwen3-embedding-4b'));
+		await page.goto('/compare?model=' + encodeURIComponent('C-Tianyu/NanoJev'));
 		await expect(modelChips(page)).toHaveCount(1, { timeout: 20_000 });
-		await expect(modelChipNames(page).first()).toHaveText('Qwen3-Embedding-4B');
+		await expect(modelChipNames(page).first()).toHaveText('NanoJev');
 		await expect
 			.poll(async () => (await currentUrl(page)).searchParams.getAll('model'))
-			.toEqual(['qwen3-embedding-4b']);
+			.toEqual(['C-Tianyu/NanoJev']);
 	});
 });
 
@@ -313,7 +306,7 @@ test.describe('/compare figure + benchmark table rendering', () => {
 
 		await page.getByRole('button', { name: /Add benchmark/ }).click();
 		const dialog = page.getByRole('dialog', { name: 'Pick benchmark' });
-		await dialog.getByRole('button', { name: /MTEB\(eng, v2\)/ }).click();
+		await dialog.getByRole('button', { name: /Choice/ }).click();
 		await page.keyboard.press('Escape');
 		await expect(benchChips(page)).toHaveCount(2);
 

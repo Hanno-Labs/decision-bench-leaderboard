@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-// Root / route: benchmark category cards from the mock menu.
+// Root / route: benchmark category cards from the bundled reviewed results.
 // The menu loads via an async loader after mount, so we wait for cards.
 
 test('home page renders the brand and at least one benchmark card', async ({ page }) => {
@@ -11,7 +11,9 @@ test('home page renders the brand and at least one benchmark card', async ({ pag
 	});
 
 	await page.goto('/');
-	await expect(page.getByRole('link', { name: /MTEB/, exact: false }).first()).toBeVisible();
+	await expect(
+		page.getByRole('link', { name: /DecisionBench/, exact: false }).first()
+	).toBeVisible();
 	await expect(page.getByRole('heading', { name: /Benchmark Overview/i })).toBeVisible();
 	// Top nav.
 	await expect(page.getByRole('link', { name: 'Models', exact: true })).toBeVisible();
@@ -39,6 +41,9 @@ test('top nav links route to the matching index pages', async ({ page }) => {
 	await expect(page).toHaveURL(/\/compare\/?(?:\?|$)/);
 
 	// Back home via brand.
-	await page.getByRole('link', { name: /MTEB/, exact: false }).first().click();
+	await page
+		.getByRole('link', { name: /DecisionBench/, exact: false })
+		.first()
+		.click();
 	await expect(page).toHaveURL(/\/(?:\?.*)?$/);
 });
