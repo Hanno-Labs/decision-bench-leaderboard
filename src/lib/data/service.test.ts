@@ -17,22 +17,22 @@ const fetchSnapshot: typeof globalThis.fetch = async (input) => {
 };
 
 describe('data-driven benchmark catalog', () => {
-	it('exposes only explicit suites and never promotes analysis slices to benchmark cards', async () => {
+	it('groups the English suite, every exported domain, and reasoning into Home sections', async () => {
 		const benchmarks = await loadBenchmarks(fetchSnapshot);
-		expect(benchmarks.map((benchmark) => benchmark.name)).toEqual([
-			'DecisionBench(eng, v1)',
-			'DecisionBench(Legal, eng, v1)',
-			'DecisionBench(Reasoning, eng, v1)'
-		]);
+		expect(benchmarks).toHaveLength(29);
+		expect(benchmarks.at(0)?.name).toBe('DecisionBench(eng, v1)');
+		expect(benchmarks.at(-1)?.name).toBe('DecisionBench(Reasoning, eng, v1)');
+		expect(benchmarks.filter((benchmark) => benchmark.domains.length === 1)).toHaveLength(27);
 		expect(benchmarks.some((benchmark) => benchmark.name.includes(' / '))).toBe(false);
 		expect((await loadBenchmarkMenu(fetchSnapshot)).map((section) => section.name)).toEqual([
 			'General Purpose',
 			'Domain-Specific',
 			'Reasoning'
 		]);
-		expect((await loadFeaturedBenchmarks(fetchSnapshot)).map((item) => item.preferred)).toEqual(
-			benchmarks.map((benchmark) => benchmark.name)
-		);
+		expect((await loadFeaturedBenchmarks(fetchSnapshot)).map((item) => item.preferred)).toEqual([
+			'DecisionBench(eng, v1)',
+			'DecisionBench(Reasoning, eng, v1)'
+		]);
 	});
 
 	it('keeps general and reasoning scores separate and counts missing rows as misses', async () => {
@@ -51,11 +51,38 @@ describe('data-driven benchmark catalog', () => {
 		expect(reasoning.tasks).toEqual(['Family: Reasoning']);
 	});
 
-	it('publishes only suite members as tasks', async () => {
+	it('publishes every exported domain as both a task view and a domain suite card', async () => {
 		const tasks = await loadTasks({}, fetchSnapshot);
-		expect(tasks).toHaveLength(25);
+		const exportedDomains = [
+			...new Set(
+				rows
+					.filter((row) => row.view_kind === 'domain')
+					.map(
+						(row) =>
+							`Domain: ${row.view_name
+								.split('_')
+								.map((part) => part[0].toUpperCase() + part.slice(1))
+								.join(' ')}`
+					)
+			)
+		].sort();
+		const publishedDomains = tasks
+			.filter((task) => task.type === 'Domain')
+			.map((task) => task.name)
+			.sort();
+
+		expect(exportedDomains).toHaveLength(27);
+		expect(publishedDomains).toEqual(exportedDomains);
+		expect(tasks).toHaveLength(51);
 		expect(tasks.some((task) => task.name.startsWith('Primitive:'))).toBe(false);
 		expect(tasks.some((task) => task.name.startsWith('Candidate Count:'))).toBe(false);
 		expect(tasks.map((task) => task.name)).toContain('Domain: Legal');
+		const domainBenchmarks = (await loadBenchmarks(fetchSnapshot)).filter(
+			(benchmark) => benchmark.domains.length === 1
+		);
+		expect(domainBenchmarks).toHaveLength(27);
+		expect(domainBenchmarks.map((benchmark) => benchmark.name)).toContain(
+			'DecisionBench(Legal, eng, v1)'
+		);
 	});
 });
