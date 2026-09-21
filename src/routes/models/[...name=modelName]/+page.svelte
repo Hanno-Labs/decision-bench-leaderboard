@@ -126,7 +126,6 @@
 <ShareMeta
 	title={model.displayName}
 	description={`${model.modelType} decision model · ${fmtParamsValue(model.totalParamsB)}${fmtParamsUnit(model.totalParamsB)} params${model.openWeights ? ' · open weights' : ' · proprietary'}`}
-	entity={{ kind: 'model', name: modelName }}
 />
 
 <main id="main-content" tabindex="-1" class="page">

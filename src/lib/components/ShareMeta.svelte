@@ -24,9 +24,6 @@
 		// Absolute or root-relative image URL. The catalog / index pages
 		// usually pass undefined and the default dots-icon kicks in.
 		image?: string;
-		// Reserved for entity-specific social cards. DecisionBench currently
-		// uses the supplied image or the bundled default card.
-		entity?: { kind: 'benchmark' | 'task' | 'model'; name: string };
 		// Twitter card style. `summary_large_image` displays a wide hero card
 		// (recommended for the benchmark / task / model detail pages so the
 		// DecisionBench brand reads at a glance). `summary` is a smaller square card.
