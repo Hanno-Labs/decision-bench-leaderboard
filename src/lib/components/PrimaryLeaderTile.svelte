@@ -3,12 +3,10 @@
 	import type { Benchmark, BenchmarkLeaders } from '$lib/types';
 	import { apiUrl, isIconUrl, slug, splitModelName } from '$lib/format';
 
-	type TintKey = 'overall' | 'choice' | 'score';
-
 	// `undefined` = loading.
 	type LeadersResult = BenchmarkLeaders | { error: string };
 	interface Props {
-		tintKey: TintKey;
+		tintKey: string;
 		label: string;
 		benchmark: Benchmark;
 		leaders: LeadersResult | undefined;
@@ -104,7 +102,7 @@
 	.prim:hover .prim-title-text {
 		color: var(--tint-fg);
 	}
-	.prim[data-key='choice'] {
+	.prim[data-key='legal'] {
 		--tint: var(--tint-purple);
 		--tint-fg: var(--tint-purple-fg);
 	}
@@ -112,7 +110,7 @@
 	   "general" benchmarks, and the original green was reading like a
 	   different category rather than a different scope. The data-key
 	   stays on the element for future per-tile overrides. */
-	.prim[data-key='score'] {
+	.prim[data-key='reasoning'] {
 		--tint: var(--tint-blue);
 		--tint-fg: var(--tint-blue-fg);
 	}

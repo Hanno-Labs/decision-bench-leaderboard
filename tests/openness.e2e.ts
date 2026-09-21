@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
-const BENCH_SLUG = encodeURIComponent('DecisionBench');
+const BENCH_SLUG = encodeURIComponent('DecisionBench(eng, v1)');
 
 function rows(page: Page): Locator {
 	return page.locator('main table.tbl tbody tr');

@@ -2,28 +2,18 @@
 // renders the skeleton immediately; prerender awaits both before emitting HTML.
 import type { PageLoad } from './$types';
 import { flattenMenu, type Benchmark, type BenchmarkLeaders } from '$lib/types';
-import { loadBenchmark, loadBenchmarkMenu, loadLeaders } from '$lib/data/service';
+import {
+	loadBenchmark,
+	loadBenchmarkMenu,
+	loadFeaturedBenchmarks,
+	loadLeaders
+} from '$lib/data/service';
 
-type TintKey = 'overall' | 'choice' | 'score';
 export interface Primary {
-	key: TintKey;
+	key: string;
 	label: string;
 	preferred: string;
 }
-
-const PRIMARIES: readonly Primary[] = [
-	{ key: 'overall', label: 'Full benchmark', preferred: 'DecisionBench' },
-	{
-		key: 'choice',
-		label: 'Choice',
-		preferred: 'DecisionBench / Primitive / Choice'
-	},
-	{
-		key: 'score',
-		label: 'Ordered score',
-		preferred: 'DecisionBench / Primitive / Ordered Score'
-	}
-];
 
 // The MTEB tile contract accepts four buckets. DecisionBench uses those
 // positions for the top four reviewed models and renders their scores.
@@ -43,32 +33,34 @@ export interface ResolvedPrimary extends Primary {
 
 export const load: PageLoad = ({ fetch }) => {
 	const menuPromise = loadBenchmarkMenu(fetch);
-	// Prefer in-menu copy; fall back to direct fetch.
-	const primariesPromise = menuPromise.then(async (menu) => {
-		const byName = new Map(flattenMenu(menu).map((b) => [b.name, b]));
-		const resolved = await Promise.all(
-			PRIMARIES.map(async (p): Promise<(Primary & { b: Benchmark }) | null> => {
-				const fromMenu = byName.get(p.preferred);
-				if (fromMenu) return { ...p, b: fromMenu };
-				try {
-					return { ...p, b: await loadBenchmark(p.preferred, fetch) };
-				} catch {
-					return null;
-				}
-			})
-		);
-		const found = resolved.filter((p): p is Primary & { b: Benchmark } => p !== null);
-		return Promise.all(
-			found.map(
-				async (p): Promise<ResolvedPrimary> => ({
-					...p,
-					leaders: await loadLeaders(p.b.name, SIZE_BUCKETS, fetch).catch(
-						(e): LeadersResult => ({ error: e instanceof Error ? e.message : String(e) })
-					)
+	// Featured suites and menu placement are both owned by the catalog.
+	const primariesPromise = Promise.all([menuPromise, loadFeaturedBenchmarks(fetch)]).then(
+		async ([menu, primaries]) => {
+			const byName = new Map(flattenMenu(menu).map((b) => [b.name, b]));
+			const resolved = await Promise.all(
+				primaries.map(async (p): Promise<(Primary & { b: Benchmark }) | null> => {
+					const fromMenu = byName.get(p.preferred);
+					if (fromMenu) return { ...p, b: fromMenu };
+					try {
+						return { ...p, b: await loadBenchmark(p.preferred, fetch) };
+					} catch {
+						return null;
+					}
 				})
-			)
-		);
-	});
+			);
+			const found = resolved.filter((p): p is Primary & { b: Benchmark } => p !== null);
+			return Promise.all(
+				found.map(
+					async (p): Promise<ResolvedPrimary> => ({
+						...p,
+						leaders: await loadLeaders(p.b.name, SIZE_BUCKETS, fetch).catch(
+							(e): LeadersResult => ({ error: e instanceof Error ? e.message : String(e) })
+						)
+					})
+				)
+			);
+		}
+	);
 
 	return { menu: menuPromise, primaries: primariesPromise };
 };

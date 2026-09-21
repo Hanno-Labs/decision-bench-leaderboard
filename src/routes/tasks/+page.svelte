@@ -23,14 +23,8 @@
 
 	let { data }: { data: PageData } = $props();
 
-	// Curated order — matches the `.type-pill[data-stype=…]` palette below.
-	const SIMPLIFIED_TYPES = [
-		'retrieval',
-		'classification',
-		'pair-classification',
-		'clustering',
-		'semantic-similarity'
-	] as const;
+	// Curated DecisionBench task-view order.
+	const SIMPLIFIED_TYPES = ['family', 'domain'] as const;
 
 	// Stale-guard via `data.tasks === p` on rapid nav.
 	let resolved = $state<TasksData | null>(null);
@@ -292,7 +286,7 @@
 
 <ShareMeta
 	title="Tasks"
-	description={`Every scored DecisionBench slice — ${ALL_TASKS.length || '0'} task views spanning decision primitives, use-case families, domains, and candidate counts.`}
+	description={`${ALL_TASKS.length || '0'} scored task and domain views from the published DecisionBench suites.`}
 />
 
 <div class="layout-sidebar">
@@ -300,8 +294,7 @@
 		<header class="hero index-hero">
 			<h1>Tasks</h1>
 			<p class="lead">
-				Every scored slice across DecisionBench. Open one to compare models on a primitive, family,
-				domain, or candidate-count regime.
+				Explore the tasks and domain views contained in the published DecisionBench suites.
 			</p>
 			<p class="contribute-note">
 				To add a task, follow the

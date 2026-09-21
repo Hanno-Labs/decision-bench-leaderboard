@@ -45,21 +45,62 @@ interface LeaderboardRow {
 	result_path: string;
 }
 
-interface ViewDefinition {
+interface ScoreExclusion {
+	view: string;
+	expectedRows: number;
+}
+
+interface SuiteScoreDefinition {
+	view: string;
+	expectedRows?: number;
+	exclude?: ScoreExclusion[];
+}
+
+interface FeaturedDefinition {
 	key: string;
-	kind: 'benchmark' | 'primitive' | 'family' | 'domain' | 'candidate_count';
+	label: string;
+	order: number;
+}
+
+interface CatalogBenchmark {
 	name: string;
-	benchmarkName: string;
 	displayName: string;
+	description: string;
+	icon?: string;
+	languages: string[];
+	domains: string[];
+	modalities: string[];
+	score: SuiteScoreDefinition;
+	taskViews: string[];
+	featured?: FeaturedDefinition;
+}
+
+interface CatalogSection {
+	name: string;
+	open?: boolean;
+	benchmarks: string[];
+}
+
+interface BenchmarkCatalog {
+	sections: CatalogSection[];
+	benchmarks: CatalogBenchmark[];
+}
+
+export interface FeaturedBenchmark {
+	key: string;
+	label: string;
+	preferred: string;
 }
 
 type FetchFn = typeof globalThis.fetch;
 
 const DATA_URL = `${base}/leaderboard.json`;
+const CATALOG_URL = `${base}/benchmark-catalog.json`;
 const RESULTS_REPOSITORY = 'https://github.com/Hanno-Labs/decision-bench-results';
 const BENCHMARK_REPOSITORY = 'https://github.com/Hanno-Labs/decision-bench';
 
 let rowsPromise: Promise<LeaderboardRow[]> | null = null;
+let catalogPromise: Promise<BenchmarkCatalog> | null = null;
 
 export class HttpError extends Error {
 	constructor(
@@ -101,41 +142,110 @@ async function loadRows(fetchFn: FetchFn = globalThis.fetch): Promise<Leaderboar
 	return rowsPromise;
 }
 
+async function loadCatalog(fetchFn: FetchFn = globalThis.fetch): Promise<BenchmarkCatalog> {
+	if (!catalogPromise) {
+		catalogPromise = fetchFn(CATALOG_URL).then(async (response) => {
+			if (!response.ok) throw new HttpError(response.status, response.statusText, CATALOG_URL);
+			const value = (await response.json()) as Partial<BenchmarkCatalog>;
+			if (!Array.isArray(value.sections) || !Array.isArray(value.benchmarks)) {
+				throw new Error('benchmark-catalog.json must contain sections and benchmarks arrays');
+			}
+			return value as BenchmarkCatalog;
+		});
+	}
+	return catalogPromise;
+}
+
 function unique<T>(values: Iterable<T>): T[] {
 	return [...new Set(values)];
 }
 
-function scoreOf(row: LeaderboardRow | undefined): number | null {
+function viewScoreOf(row: LeaderboardRow | undefined): number | null {
 	if (!row) return null;
 	return row.view === 'overall' ? row.primary_accuracy : row.supported_accuracy;
 }
 
-function viewDefinitions(rows: readonly LeaderboardRow[]): ViewDefinition[] {
-	const definitions: ViewDefinition[] = [
-		{
-			key: 'overall',
-			kind: 'benchmark',
-			name: 'overall',
-			benchmarkName: 'DecisionBench',
-			displayName: 'DecisionBench'
-		}
-	];
-	for (const kind of ['primitive', 'family', 'domain', 'candidate_count'] as const) {
-		const names = unique(
-			rows.filter((row) => row.view_kind === kind).map((row) => row.view_name)
-		).sort();
-		for (const name of names) {
-			const displayName = displayViewName(kind, name);
-			definitions.push({
-				key: `${kind}:${name}`,
-				kind,
-				name,
-				benchmarkName: `DecisionBench / ${titleCase(kind)} / ${displayName}`,
-				displayName
-			});
-		}
+function correctRows(row: LeaderboardRow): number | null {
+	if (row.primary_accuracy != null && row.requested_rows != null) {
+		return row.primary_accuracy * row.requested_rows;
 	}
-	return definitions;
+	if (row.supported_accuracy != null) return row.supported_accuracy * row.successful_rows;
+	return null;
+}
+
+function weightedMetric(
+	base: LeaderboardRow,
+	exclusions: readonly LeaderboardRow[],
+	metric: 'mean_negative_log_likelihood' | 'mean_latency_seconds',
+	successfulRows: number
+): number | null {
+	const baseValue = base[metric];
+	if (baseValue == null || successfulRows <= 0) return null;
+	let total = baseValue * base.successful_rows;
+	for (const row of exclusions) {
+		const value = row[metric];
+		if (value == null) return null;
+		total -= value * row.successful_rows;
+	}
+	return total / successfulRows;
+}
+
+function suiteRow(
+	definition: CatalogBenchmark,
+	modelRows: readonly LeaderboardRow[]
+): LeaderboardRow | undefined {
+	const baseRow = modelRows.find((row) => row.view === definition.score.view);
+	if (!baseRow) return undefined;
+	const baseCorrect = correctRows(baseRow);
+	if (baseCorrect == null) return undefined;
+
+	const exclusionRows = (definition.score.exclude ?? [])
+		.map((exclusion) => modelRows.find((row) => row.view === exclusion.view))
+		.filter((row): row is LeaderboardRow => row !== undefined);
+	if (exclusionRows.length !== (definition.score.exclude?.length ?? 0)) return undefined;
+
+	const baseRequested =
+		definition.score.expectedRows ?? baseRow.requested_rows ?? baseRow.successful_rows;
+	const excludedRequested = (definition.score.exclude ?? []).reduce(
+		(total, exclusion) => total + exclusion.expectedRows,
+		0
+	);
+	const requestedRows = baseRequested - excludedRequested;
+	const successfulRows =
+		baseRow.successful_rows - exclusionRows.reduce((total, row) => total + row.successful_rows, 0);
+	const correct =
+		baseCorrect - exclusionRows.reduce((total, row) => total + (correctRows(row) ?? 0), 0);
+	if (requestedRows <= 0 || successfulRows < 0 || correct < 0) return undefined;
+
+	const errorRows = baseRow.error_rows ?? 0;
+	const unsupportedRows = Math.max(0, requestedRows - successfulRows - errorRows);
+	return {
+		...baseRow,
+		view: `suite:${definition.name}`,
+		view_kind: 'suite',
+		view_name: definition.name,
+		requested_rows: requestedRows,
+		successful_rows: successfulRows,
+		unsupported_rows: unsupportedRows,
+		error_rows: errorRows,
+		coverage: successfulRows / requestedRows,
+		primary_accuracy: correct / requestedRows,
+		supported_accuracy: successfulRows > 0 ? correct / successfulRows : null,
+		mean_negative_log_likelihood: weightedMetric(
+			baseRow,
+			exclusionRows,
+			'mean_negative_log_likelihood',
+			successfulRows
+		),
+		expected_calibration_error:
+			exclusionRows.length === 0 ? baseRow.expected_calibration_error : null,
+		mean_latency_seconds: weightedMetric(
+			baseRow,
+			exclusionRows,
+			'mean_latency_seconds',
+			successfulRows
+		)
+	};
 }
 
 function taskName(kind: string, name: string): string {
@@ -172,9 +282,12 @@ function taskMeta(kind: string, name: string, rows: readonly LeaderboardRow[]): 
 	};
 }
 
-function allTaskMeta(rows: readonly LeaderboardRow[]): TaskMeta[] {
-	const pairs = unique(rows.filter((row) => row.view !== 'overall').map((row) => row.view));
-	return pairs
+function catalogTaskViews(catalog: BenchmarkCatalog): string[] {
+	return unique(catalog.benchmarks.flatMap((benchmark) => benchmark.taskViews));
+}
+
+function allTaskMeta(rows: readonly LeaderboardRow[], catalog: BenchmarkCatalog): TaskMeta[] {
+	return catalogTaskViews(catalog)
 		.map((key) => {
 			const [kind, ...rest] = key.split(':');
 			return taskMeta(kind, rest.join(':'), rows);
@@ -242,109 +355,69 @@ function rowsByModel(rows: readonly LeaderboardRow[]): Map<string, LeaderboardRo
 	return grouped;
 }
 
-function benchmarkFor(definition: ViewDefinition, rows: readonly LeaderboardRow[]): Benchmark {
-	const allFamilies = unique(
-		rows.filter((row) => row.view_kind === 'family').map((row) => row.view_name)
-	);
-	const allDomains = unique(
-		rows.filter((row) => row.view_kind === 'domain').map((row) => row.view_name)
-	);
-	const allPrimitives = unique(
-		rows.filter((row) => row.view_kind === 'primitive').map((row) => row.view_name)
-	);
-	const tasks =
-		definition.kind === 'benchmark'
-			? allFamilies.map((name) => taskName('family', name)).sort()
-			: [taskName(definition.kind, definition.name)];
-	const taskTypes =
-		definition.kind === 'benchmark'
-			? allPrimitives.map((name) => displayViewName('primitive', name)).sort()
-			: [titleCase(definition.kind)];
-	const modelCount = new Set(
-		rows
-			.filter((row) => row.view === definition.key && scoreOf(row) != null)
-			.map((row) => row.model)
-	).size;
-	const scope = definition.kind === 'benchmark' ? 'the full benchmark' : definition.displayName;
+function benchmarkFor(definition: CatalogBenchmark, rows: readonly LeaderboardRow[]): Benchmark {
+	const modelCount = [...rowsByModel(rows).values()].filter(
+		(modelRows) => suiteRow(definition, modelRows)?.primary_accuracy != null
+	).length;
 	return {
-		name: definition.benchmarkName,
+		name: definition.name,
 		displayName: definition.displayName,
-		icon:
-			definition.kind === 'benchmark'
-				? '◈'
-				: definition.kind === 'primitive'
-					? '◆'
-					: definition.kind === 'family'
-						? '◇'
-						: '○',
-		description: `Reviewed DecisionBench results for ${scope}. Unsupported and error rows count as misses in the full-benchmark primary score.`,
+		icon: definition.icon,
+		description: definition.description,
 		reference: RESULTS_REPOSITORY,
 		citation: undefined,
-		languages: ['English'],
-		taskTypes,
-		simplifiedTaskTypes: definition.kind === 'benchmark' ? ['decision'] : [definition.kind],
-		tasks,
-		domains:
-			definition.kind === 'domain'
-				? [definition.displayName]
-				: definition.kind === 'benchmark'
-					? allDomains.map((name) => displayViewName('domain', name)).sort()
-					: [],
-		modalities: ['text'],
+		languages: definition.languages,
+		taskTypes: ['Decision'],
+		simplifiedTaskTypes: ['decision'],
+		tasks: definition.taskViews
+			.map((view) => {
+				const [kind, ...name] = view.split(':');
+				return taskName(kind, name.join(':'));
+			})
+			.sort(),
+		domains: definition.domains,
+		modalities: definition.modalities,
 		displayOnLeaderboard: true,
 		newVersion: null,
-		aggregations: definition.kind === 'benchmark' ? ['mean_task', 'task_types'] : ['mean_task'],
+		aggregations: ['mean_task'],
 		showZeroShot: false,
 		numModels: modelCount,
 		languageView: null
 	};
 }
 
-function definitionForBenchmark(name: string, rows: readonly LeaderboardRow[]): ViewDefinition {
-	const definition = viewDefinitions(rows).find((item) => item.benchmarkName === name);
+function definitionForBenchmark(name: string, catalog: BenchmarkCatalog): CatalogBenchmark {
+	const definition = catalog.benchmarks.find((item) => item.name === name);
 	if (!definition) throw new HttpError(404, 'Not Found', name);
 	return definition;
 }
 
-function summaryFor(definition: ViewDefinition, rows: readonly LeaderboardRow[]): BenchmarkSummary {
+function summaryFor(
+	definition: CatalogBenchmark,
+	rows: readonly LeaderboardRow[]
+): BenchmarkSummary {
 	const grouped = rowsByModel(rows);
-	const familyNames = unique(
-		rows.filter((row) => row.view_kind === 'family').map((row) => row.view_name)
-	);
-	const primitiveNames = unique(
-		rows.filter((row) => row.view_kind === 'primitive').map((row) => row.view_name)
-	);
-	const taskNames =
-		definition.kind === 'benchmark'
-			? familyNames.map((name) => taskName('family', name)).sort()
-			: [taskName(definition.kind, definition.name)];
-	const taskTypes =
-		definition.kind === 'benchmark'
-			? primitiveNames.map((name) => displayViewName('primitive', name)).sort()
-			: [titleCase(definition.kind)];
+	const taskNames = definition.taskViews
+		.map((view) => {
+			const [kind, ...name] = view.split(':');
+			return taskName(kind, name.join(':'));
+		})
+		.sort();
+	const taskTypes = ['Decision'];
 	const summaryRows: SummaryRow[] = [];
 	for (const modelRows of grouped.values()) {
-		const current = modelRows.find((row) => row.view === definition.key);
-		const score = scoreOf(current);
+		const current = suiteRow(definition, modelRows);
+		const score = current?.primary_accuracy ?? null;
 		if (!current || score == null) continue;
 		const scoresByTask: Record<string, number> = {};
-		if (definition.kind === 'benchmark') {
-			for (const name of familyNames) {
-				const value = scoreOf(modelRows.find((row) => row.view === `family:${name}`));
-				if (value != null) scoresByTask[taskName('family', name)] = value;
-			}
-		} else {
-			scoresByTask[taskName(definition.kind, definition.name)] = score;
+		for (const view of definition.taskViews) {
+			const row = modelRows.find((candidate) => candidate.view === view);
+			const value = viewScoreOf(row);
+			if (value == null) continue;
+			const [kind, ...name] = view.split(':');
+			scoresByTask[taskName(kind, name.join(':'))] = value;
 		}
-		const scoresByTaskType: Record<string, number> = {};
-		if (definition.kind === 'benchmark') {
-			for (const name of primitiveNames) {
-				const value = scoreOf(modelRows.find((row) => row.view === `primitive:${name}`));
-				if (value != null) scoresByTaskType[displayViewName('primitive', name)] = value;
-			}
-		} else {
-			scoresByTaskType[titleCase(definition.kind)] = score;
-		}
+		const scoresByTaskType = { Decision: score };
 		const model = toModelMeta(current);
 		summaryRows.push({
 			rank: 0,
@@ -374,43 +447,53 @@ function summaryFor(definition: ViewDefinition, rows: readonly LeaderboardRow[])
 		return taskMeta(kind, rawName, rows);
 	});
 	return {
-		benchmarkName: definition.benchmarkName,
+		benchmarkName: definition.name,
 		taskTypes,
 		tasks: taskNames,
 		tasksMeta,
 		rows: summaryRows,
-		aggregations: definition.kind === 'benchmark' ? ['mean_task', 'task_types'] : ['mean_task'],
+		aggregations: ['mean_task'],
 		showZeroShot: false
 	};
 }
 
 export async function loadBenchmarkMenu(fetchFn?: FetchFn): Promise<MenuEntry[]> {
-	const rows = await loadRows(fetchFn);
-	const definitions = viewDefinitions(rows);
-	const section = (name: string, kind: ViewDefinition['kind']): MenuEntry => ({
-		name,
-		open: kind === 'benchmark' || kind === 'primitive',
-		children: definitions
-			.filter((definition) => definition.kind === kind)
-			.map((definition) => benchmarkFor(definition, rows))
-	});
-	return [
-		section('Primary benchmark', 'benchmark'),
-		section('Decision primitives', 'primitive'),
-		section('Application families', 'family'),
-		section('Domains', 'domain'),
-		section('Candidate counts', 'candidate_count')
-	];
+	const [rows, catalog] = await Promise.all([loadRows(fetchFn), loadCatalog(fetchFn)]);
+	const byName = new Map(catalog.benchmarks.map((definition) => [definition.name, definition]));
+	return catalog.sections.map((section) => ({
+		name: section.name,
+		open: section.open,
+		children: section.benchmarks.map((name) => {
+			const definition = byName.get(name);
+			if (!definition) throw new Error(`Unknown benchmark in catalog section: ${name}`);
+			return benchmarkFor(definition, rows);
+		})
+	}));
 }
 
 export async function loadBenchmarks(fetchFn?: FetchFn): Promise<Benchmark[]> {
-	const rows = await loadRows(fetchFn);
-	return viewDefinitions(rows).map((definition) => benchmarkFor(definition, rows));
+	const [rows, catalog] = await Promise.all([loadRows(fetchFn), loadCatalog(fetchFn)]);
+	return catalog.benchmarks.map((definition) => benchmarkFor(definition, rows));
 }
 
 export async function loadBenchmark(name: string, fetchFn?: FetchFn): Promise<Benchmark> {
-	const rows = await loadRows(fetchFn);
-	return benchmarkFor(definitionForBenchmark(name, rows), rows);
+	const [rows, catalog] = await Promise.all([loadRows(fetchFn), loadCatalog(fetchFn)]);
+	return benchmarkFor(definitionForBenchmark(name, catalog), rows);
+}
+
+export async function loadFeaturedBenchmarks(fetchFn?: FetchFn): Promise<FeaturedBenchmark[]> {
+	const catalog = await loadCatalog(fetchFn);
+	return catalog.benchmarks
+		.filter(
+			(definition): definition is CatalogBenchmark & { featured: FeaturedDefinition } =>
+				definition.featured !== undefined
+		)
+		.sort((a, b) => a.featured.order - b.featured.order)
+		.map((definition) => ({
+			key: definition.featured.key,
+			label: definition.featured.label,
+			preferred: definition.name
+		}));
 }
 
 export function primeBenchmarkCache(name: string, value: Benchmark): void {
@@ -424,8 +507,8 @@ export async function loadSummary(
 	_languages?: ReadonlyArray<string>,
 	fetchFn?: FetchFn
 ): Promise<BenchmarkSummary> {
-	const rows = await loadRows(fetchFn);
-	return summaryFor(definitionForBenchmark(benchmarkName, rows), rows);
+	const [rows, catalog] = await Promise.all([loadRows(fetchFn), loadCatalog(fetchFn)]);
+	return summaryFor(definitionForBenchmark(benchmarkName, catalog), rows);
 }
 
 export async function loadPerLanguage(
@@ -441,8 +524,8 @@ export async function loadLeaders(
 	buckets: ReadonlyArray<readonly [number, number | null]>,
 	fetchFn?: FetchFn
 ): Promise<BenchmarkLeaders> {
-	const rows = await loadRows(fetchFn);
-	const summary = summaryFor(definitionForBenchmark(benchmarkName, rows), rows);
+	const [rows, catalog] = await Promise.all([loadRows(fetchFn), loadCatalog(fetchFn)]);
+	const summary = summaryFor(definitionForBenchmark(benchmarkName, catalog), rows);
 	const leaders: BucketLeader[] = buckets.map(([min, max], index) => {
 		const row = summary.rows[index];
 		return {
@@ -462,8 +545,8 @@ export async function loadLeaders(
 }
 
 export async function loadTasks(filters: TaskFilters = {}, fetchFn?: FetchFn): Promise<TaskMeta[]> {
-	const rows = await loadRows(fetchFn);
-	let tasks = allTaskMeta(rows);
+	const [rows, catalog] = await Promise.all([loadRows(fetchFn), loadCatalog(fetchFn)]);
+	let tasks = allTaskMeta(rows, catalog);
 	if (filters.name) {
 		const query = filters.name.toLowerCase();
 		tasks = tasks.filter((task) => task.name.toLowerCase().includes(query));
@@ -484,7 +567,7 @@ export async function loadTask(name: string, fetchFn?: FetchFn): Promise<TaskMet
 }
 
 export async function loadTaskScores(name: string, fetchFn?: FetchFn): Promise<TaskScores> {
-	const rows = await loadRows(fetchFn);
+	const [rows, catalog] = await Promise.all([loadRows(fetchFn), loadCatalog(fetchFn)]);
 	const task = await loadTask(name, fetchFn);
 	const [kindLabel, ...displayParts] = name.split(': ');
 	const kind = kindLabel.toLowerCase();
@@ -494,19 +577,22 @@ export async function loadTaskScores(name: string, fetchFn?: FetchFn): Promise<T
 			?.view_name ?? display.toLowerCase().replaceAll(' ', '_');
 	const view = `${kind}:${rawName}`;
 	const matching = rows
-		.filter((row) => row.view === view && scoreOf(row) != null)
-		.sort((a, b) => (scoreOf(b) ?? -1) - (scoreOf(a) ?? -1));
+		.filter((row) => row.view === view && viewScoreOf(row) != null)
+		.sort((a, b) => (viewScoreOf(b) ?? -1) - (viewScoreOf(a) ?? -1));
+	const benchmarkNames = catalog.benchmarks
+		.filter((definition) => definition.taskViews.includes(view))
+		.map((definition) => definition.name);
 	return {
 		task,
-		benchmarks: [`DecisionBench / ${titleCase(kind)} / ${display}`],
+		benchmarks: benchmarkNames,
 		subsets: ['default'],
 		splits: ['test'],
 		rows: matching.map((row, index) => ({
 			rank: index + 1,
 			model: toModelMeta(row),
-			score: scoreOf(row),
-			subsetScores: { default: { test: scoreOf(row) ?? 0 } },
-			benchmarks: [`DecisionBench / ${titleCase(kind)} / ${display}`],
+			score: viewScoreOf(row),
+			subsetScores: { default: { test: viewScoreOf(row) ?? 0 } },
+			benchmarks: benchmarkNames,
 			trainedOn: null
 		}))
 	};
@@ -548,15 +634,15 @@ export async function loadModel(name: string, fetchFn?: FetchFn): Promise<ModelM
 }
 
 export async function loadModelScores(name: string, fetchFn?: FetchFn): Promise<ModelScores> {
-	const rows = await loadRows(fetchFn);
+	const [rows, catalog] = await Promise.all([loadRows(fetchFn), loadCatalog(fetchFn)]);
 	const model = await loadModel(name, fetchFn);
 	const resultRows = [];
-	for (const definition of viewDefinitions(rows)) {
+	for (const definition of catalog.benchmarks) {
 		const summary = summaryFor(definition, rows);
 		const row = summary.rows.find((item) => item.model.name === name);
 		if (!row) continue;
 		resultRows.push({
-			benchmarkName: definition.benchmarkName,
+			benchmarkName: definition.name,
 			benchmarkDisplayName: definition.displayName,
 			rank: row.rank,
 			totalModels: summary.rows.length,

@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
 const MAX_PICKED = 3;
-const MAX_BENCHMARKS = 6;
+const AVAILABLE_BENCHMARKS = 3;
 
 async function waitForCompareReady(page: Page) {
 	// Two chips = the page auto-seeded the top 2 models from the primary summary.
@@ -66,12 +66,12 @@ test.describe('/compare URL roundtrip (regression guard for repeated-key form)',
 		await expect(page).toHaveURL(/[?&]benchmark=/);
 
 		const url = await currentUrl(page);
-		expect(url.searchParams.getAll('benchmark')).toEqual(['DecisionBench']);
+		expect(url.searchParams.getAll('benchmark')).toEqual(['DecisionBench(eng, v1)']);
 		expect(url.search).not.toContain('%25');
 
 		await page.goto(url.toString());
 		await waitForCompareReady(page);
-		await expect(benchChipNames(page).first()).toHaveText('DecisionBench');
+		await expect(benchChipNames(page).first()).toHaveText('DecisionBench(eng, v1)');
 	});
 
 	test('adding a second benchmark writes two repeated `?benchmark=` pairs', async ({ page }) => {
@@ -81,7 +81,7 @@ test.describe('/compare URL roundtrip (regression guard for repeated-key form)',
 		await page.getByRole('button', { name: /Add benchmark/ }).click();
 		const dialog = page.getByRole('dialog', { name: 'Pick benchmark' });
 		await expect(dialog).toBeVisible();
-		await dialog.getByRole('button', { name: /Choice/ }).click();
+		await dialog.getByRole('button', { name: /Legal/ }).click();
 
 		await expect(benchChips(page)).toHaveCount(2);
 		await expect
@@ -90,15 +90,15 @@ test.describe('/compare URL roundtrip (regression guard for repeated-key form)',
 
 		const url = await currentUrl(page);
 		expect(url.searchParams.getAll('benchmark')).toEqual([
-			'DecisionBench',
-			'DecisionBench / Primitive / Choice'
+			'DecisionBench(eng, v1)',
+			'DecisionBench(Legal, eng, v1)'
 		]);
 
 		await page.goto(url.toString());
 		await waitForCompareReady(page);
 		await expect(benchChips(page)).toHaveCount(2);
-		await expect(benchChipNames(page).nth(0)).toHaveText('DecisionBench');
-		await expect(benchChipNames(page).nth(1)).toHaveText('Choice');
+		await expect(benchChipNames(page).nth(0)).toHaveText('DecisionBench(eng, v1)');
+		await expect(benchChipNames(page).nth(1)).toHaveText('DecisionBench(Legal, eng, v1)');
 	});
 
 	test('legacy comma-joined share links still hydrate (back-compat)', async ({ page }) => {
@@ -113,7 +113,7 @@ test.describe('/compare URL roundtrip (regression guard for repeated-key form)',
 			'/compare?model=' +
 			seededNames.map((n) => encodeURIComponent(n)).join('%2C') +
 			'&benchmark=' +
-			encodeURIComponent('DecisionBench');
+			encodeURIComponent('DecisionBench(eng, v1)');
 
 		await page.goto(legacy);
 		await waitForCompareReady(page);
@@ -215,7 +215,7 @@ test.describe('/compare benchmark picker', () => {
 
 		await page.getByRole('button', { name: /Add benchmark/ }).click();
 		const dialog = page.getByRole('dialog', { name: 'Pick benchmark' });
-		await dialog.getByRole('button', { name: /Choice/ }).click();
+		await dialog.getByRole('button', { name: /Legal/ }).click();
 		await page.keyboard.press('Escape');
 		await expect(benchChips(page)).toHaveCount(2);
 		await expect(
@@ -232,12 +232,12 @@ test.describe('/compare benchmark picker', () => {
 		await expect(benchChips(page).first().locator('.pick-x')).toHaveCount(0);
 	});
 
-	test('+Add disappears at MAX_BENCHMARKS', async ({ page }) => {
+	test('+Add disappears when every published suite is selected', async ({ page }) => {
 		await page.goto('/compare');
 		await waitForCompareReady(page);
 
 		const addBtn = () => page.getByRole('button', { name: /Add benchmark/ });
-		for (let i = 1; i < MAX_BENCHMARKS; i++) {
+		for (let i = 1; i < AVAILABLE_BENCHMARKS; i++) {
 			await addBtn().click();
 			const dialog = page.getByRole('dialog', { name: 'Pick benchmark' });
 			await dialog.locator('.picker-row:not(.on):not([disabled])').first().click();
@@ -306,7 +306,7 @@ test.describe('/compare figure + benchmark table rendering', () => {
 
 		await page.getByRole('button', { name: /Add benchmark/ }).click();
 		const dialog = page.getByRole('dialog', { name: 'Pick benchmark' });
-		await dialog.getByRole('button', { name: /Choice/ }).click();
+		await dialog.getByRole('button', { name: /Legal/ }).click();
 		await page.keyboard.press('Escape');
 		await expect(benchChips(page)).toHaveCount(2);
 

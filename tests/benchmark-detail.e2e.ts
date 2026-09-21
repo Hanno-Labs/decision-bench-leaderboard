@@ -2,9 +2,9 @@ import { test, expect } from '@playwright/test';
 
 // Benchmark detail page hero + tab switching against the reviewed snapshot.
 
-const BENCH = 'DecisionBench';
+const BENCH = 'DecisionBench(eng, v1)';
 const SLUG = encodeURIComponent(BENCH);
-const SLICE = 'DecisionBench / Primitive / Choice';
+const SLICE = 'DecisionBench(Legal, eng, v1)';
 const SLICE_SLUG = encodeURIComponent(SLICE);
 
 test('benchmark detail page loads the hero and the summary tab by default', async ({ page }) => {
@@ -37,9 +37,9 @@ test('the URL ?tab= param rehydrates the active tab on load', async ({ page }) =
 	);
 });
 
-test('primitive slice route loads its own reviewed summary', async ({ page }) => {
+test('domain suite route loads its own reviewed summary', async ({ page }) => {
 	await page.goto(`/benchmark/${SLICE_SLUG}/`);
 
-	await expect(page.getByRole('heading', { name: 'Choice' }).first()).toBeVisible();
+	await expect(page.getByRole('heading', { name: SLICE }).first()).toBeVisible();
 	await expect(page.locator('table thead').first()).toBeVisible();
 });

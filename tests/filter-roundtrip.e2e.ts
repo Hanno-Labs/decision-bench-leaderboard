@@ -202,10 +202,10 @@ test.describe('/tasks filter URL roundtrip', () => {
 		await page.goto('/tasks');
 		await expect(page.locator('a[href*="/tasks/"]').first()).toBeVisible({ timeout: 15_000 });
 
-		const retrievalPill = page.locator('aside.sidebar label.type-pill[data-stype="primitive"]');
-		const retrievalCb = retrievalPill.locator('input[type=checkbox]');
-		await expect(retrievalCb).toBeChecked();
-		await retrievalPill.locator('input[type=checkbox]').click({ force: true });
+		const familyPill = page.locator('aside.sidebar label.type-pill[data-stype="family"]');
+		const familyCb = familyPill.locator('input[type=checkbox]');
+		await expect(familyCb).toBeChecked();
+		await familyCb.click({ force: true });
 
 		await expect(page).toHaveURL(/[?&]types=/);
 		await expect(activeChips(page)).toContainText('Type');
@@ -214,7 +214,7 @@ test.describe('/tasks filter URL roundtrip', () => {
 		const filteredUrl = page.url();
 		await page.goto(filteredUrl);
 		await expect(
-			page.locator('aside.sidebar label.type-pill[data-stype="primitive"] input[type=checkbox]')
+			page.locator('aside.sidebar label.type-pill[data-stype="family"] input[type=checkbox]')
 		).not.toBeChecked();
 		await expect(activeChips(page)).toContainText('Type');
 
@@ -222,7 +222,7 @@ test.describe('/tasks filter URL roundtrip', () => {
 		await expect(page).toHaveURL(/\/tasks\/?$/);
 		await expect(activeStrip(page)).toHaveCount(0);
 		await expect(
-			page.locator('aside.sidebar label.type-pill[data-stype="primitive"] input[type=checkbox]')
+			page.locator('aside.sidebar label.type-pill[data-stype="family"] input[type=checkbox]')
 		).toBeChecked();
 	});
 });
@@ -334,7 +334,7 @@ test.describe('/models filter URL roundtrip', () => {
 
 test.describe('/benchmark/[name] filter URL roundtrip (shared store path)', () => {
 	test('availability toggle: chip + URL + restore + Reset all', async ({ page }) => {
-		const url = '/benchmark/' + encodeURIComponent('DecisionBench');
+		const url = '/benchmark/' + encodeURIComponent('DecisionBench(eng, v1)');
 		await page.goto(url);
 		const openRadio = page.getByRole('radio', { name: 'Open', exact: true }).first();
 		await expect(openRadio).toBeVisible({ timeout: 20_000 });
@@ -358,7 +358,7 @@ test.describe('/benchmark/[name] filter URL roundtrip (shared store path)', () =
 });
 
 test.describe('/benchmark/[name] empty pick set drops every row', () => {
-	const url = '/benchmark/' + encodeURIComponent('DecisionBench / Domain / Legal');
+	const url = '/benchmark/' + encodeURIComponent('DecisionBench(Legal, eng, v1)');
 
 	async function waitForTable(page: Page) {
 		await expect(page.locator('table tbody tr').first()).toBeVisible({ timeout: 20_000 });
