@@ -67,6 +67,7 @@
 	// Local derived lookup, not held in $state — plain Map is correct.
 
 	let benchIndex = $derived(new Map(ALL_BENCHMARKS.map((b) => [b.name, b])));
+	let benchmarkPickLimit = $derived(Math.min(MAX_BENCHMARKS, ALL_BENCHMARKS.length));
 	// Plain Map + a version counter — cheaper than SvelteMap's per-key
 	// proxy. Consumers bump `summaryCacheVersion` on insert to invalidate
 	// the `benchSummaries` derived.
@@ -759,7 +760,7 @@
 						{/if}
 					</span>
 				{/each}
-				{#if pickedBenchmarks.length < MAX_BENCHMARKS}
+				{#if pickedBenchmarks.length < benchmarkPickLimit}
 					<button
 						type="button"
 						class="add-btn"
@@ -1033,7 +1034,7 @@
 						<h2>Score per benchmark</h2>
 						<div class="section-controls">
 							{@render benchmarkPicker()}
-							<span class="cmp-count">{pickedBenchmarks.length} / {MAX_BENCHMARKS}</span>
+							<span class="cmp-count">{pickedBenchmarks.length} / {benchmarkPickLimit}</span>
 						</div>
 					</div>
 					<p class="cmp-sub">Each cell: mean score · rank · zero-shot coverage.</p>

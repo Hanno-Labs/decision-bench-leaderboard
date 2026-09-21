@@ -23,14 +23,8 @@
 
 	let { data }: { data: PageData } = $props();
 
-	// Curated order — matches the `.type-pill[data-stype=…]` palette below.
-	const SIMPLIFIED_TYPES = [
-		'retrieval',
-		'classification',
-		'pair-classification',
-		'clustering',
-		'semantic-similarity'
-	] as const;
+	// Curated DecisionBench task-view order.
+	const SIMPLIFIED_TYPES = ['family', 'domain'] as const;
 
 	// Stale-guard via `data.tasks === p` on rapid nav.
 	let resolved = $state<TasksData | null>(null);

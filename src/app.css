@@ -260,6 +260,14 @@ code {
 
 /* Per-task-group tints — `data-stype` exposes `--category-tint(-fg)`.
    Mapping documented in CLAUDE.md. */
+:where([data-stype='family']) {
+	--category-tint: var(--tint-blue);
+	--category-tint-fg: var(--tint-blue-fg);
+}
+:where([data-stype='domain']) {
+	--category-tint: var(--tint-purple);
+	--category-tint-fg: var(--tint-purple-fg);
+}
 :where([data-stype='classification']) {
 	--category-tint: var(--tint-blue);
 	--category-tint-fg: var(--tint-blue-fg);

@@ -31,14 +31,8 @@ export interface TasksData {
 	languages: string[];
 }
 
-// Curated order — matches the `.type-pill[data-stype=…]` palette on the page.
-const SIMPLIFIED_TYPES = [
-	'retrieval',
-	'classification',
-	'pair-classification',
-	'clustering',
-	'semantic-similarity'
-] as const;
+// Curated DecisionBench task-view order.
+const SIMPLIFIED_TYPES = ['family', 'domain'] as const;
 
 export const load: PageLoad = ({ fetch }) => {
 	return { tasks: deriveTasksData(fetch) };
