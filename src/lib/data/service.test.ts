@@ -51,6 +51,22 @@ describe('data-driven benchmark catalog', () => {
 		expect(reasoning.tasks).toEqual(['Family: Reasoning']);
 	});
 
+	it('carries calibration through suites without folding it into accuracy', async () => {
+		const general = await loadSummary('DecisionBench(eng, v1)', undefined, fetchSnapshot);
+		const legal = await loadSummary('DecisionBench(Legal, eng, v1)', undefined, fetchSnapshot);
+		const generalRow = general.rows.find((row) => row.model.name === 'C-Tianyu/NanoJev');
+		const legalRow = legal.rows.find((row) => row.model.name === 'C-Tianyu/NanoJev');
+
+		// The general suite subtracts the reasoning view, so NLL can be
+		// row-weighted but ECE cannot be reconstructed from aggregate bins.
+		expect(generalRow?.meanNegativeLogLikelihood).toBeTypeOf('number');
+		expect(generalRow?.expectedCalibrationError).toBeNull();
+		// A direct domain suite uses one intact view and can expose both.
+		expect(legalRow?.meanNegativeLogLikelihood).toBeTypeOf('number');
+		expect(legalRow?.expectedCalibrationError).toBeTypeOf('number');
+		expect(legalRow?.meanTask).toBe(legalRow?.scoresByTaskType.Decision);
+	});
+
 	it('publishes every exported domain as both a task view and a domain suite card', async () => {
 		const tasks = await loadTasks({}, fetchSnapshot);
 		const exportedDomains = [

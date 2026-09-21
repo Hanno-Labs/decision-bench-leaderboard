@@ -11,7 +11,15 @@
 	import type { Data, Layout } from 'plotly.js';
 	import type { Benchmark, BenchmarkSummary, ModelMeta, SummaryRow } from '$lib/types';
 	import { flattenMenu } from '$lib/types';
-	import { humanizeType, modelPath, slug, fmtParamsValue, fmtParamsUnit } from '$lib/format';
+	import {
+		humanizeType,
+		modelPath,
+		slug,
+		fmtParamsValue,
+		fmtParamsUnit,
+		fmtEce,
+		fmtNll
+	} from '$lib/format';
 	import {
 		opennessScore,
 		opennessDimensions,
@@ -1037,7 +1045,7 @@
 							<span class="cmp-count">{pickedBenchmarks.length} / {benchmarkPickLimit}</span>
 						</div>
 					</div>
-					<p class="cmp-sub">Each cell: mean score · rank · zero-shot coverage.</p>
+					<p class="cmp-sub">Each cell: mean score · rank · zero-shot coverage · calibration.</p>
 					<div class="cmp-compare" style:grid-template-columns={cmpCols}>
 						{@render compareHead('Benchmark')}
 						{#each benchViews as bv (bv.name)}
@@ -1066,6 +1074,11 @@
 													? 'Fully zero-shot: this model was not trained on any of this benchmark’s tasks, so every score here is out-of-distribution.'
 													: `Zero-shot on ${r.zeroShotPct}% of this benchmark’s tasks — the model was trained on the rest, which inflates its score relative to a fully zero-shot model.`}
 											>{r.zeroShotPct === -1 ? 'NA' : `${r.zeroShotPct}% ZS`}</span
+										>
+										<span class="cal-sub"
+											>ECE {fmtEce(r.expectedCalibrationError)} · NLL {fmtNll(
+												r.meanNegativeLogLikelihood
+											)}</span
 										>
 									{:else}
 										—
@@ -1775,6 +1788,12 @@
 	/* Flag non-zero-shot coverage so uneven comparisons stand out. */
 	.zs-sub.warn {
 		color: var(--tint-amber-fg);
+	}
+	.cal-sub {
+		font-size: 10.5px;
+		color: var(--text-subtle);
+		font-weight: 500;
+		white-space: nowrap;
 	}
 
 	/* Task-type coverage caveat — same amber weight as the zero-shot note. */

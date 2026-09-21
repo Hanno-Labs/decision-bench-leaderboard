@@ -11,6 +11,8 @@
 		rank: number;
 		meanTask: number | null;
 		meanTaskType: number | null;
+		expectedCalibrationError?: number | null;
+		meanNegativeLogLikelihood?: number | null;
 		zeroShotPct: number;
 		totalModels: number;
 	}
@@ -21,7 +23,8 @@
 	import { stickyHead } from '$lib/actions/sticky-head';
 	import { stickyHScroll } from '$lib/actions/sticky-hscroll';
 	import { createSortState } from '$lib/stores/sort.svelte';
-	import { fmtPct, fmtZeroShot, heat, maxOf, minOf, slug } from '$lib/format';
+	import { fmtEce, fmtNll, fmtPct, fmtZeroShot, heat, maxOf, minOf, slug } from '$lib/format';
+	import { COLUMN_INFO } from '$lib/column-info';
 	import SortHeader from './SortHeader.svelte';
 
 	interface Props {
@@ -29,10 +32,10 @@
 	}
 	let { rows }: Props = $props();
 
-	type SortKey = 'benchmark' | 'rank' | 'meanTask' | 'meanTaskType' | 'zeroShot';
+	type SortKey = 'benchmark' | 'rank' | 'meanTask' | 'meanTaskType' | 'zeroShot' | 'ece' | 'nll';
 	const sort = createSortState<SortKey>({
 		urlKeys: ['s.bench', 'd.bench'],
-		ascKeys: ['benchmark', 'rank'],
+		ascKeys: ['benchmark', 'rank', 'ece', 'nll'],
 		defaultIcon: '↕'
 	});
 
@@ -48,9 +51,24 @@
 			}
 			if (k === 'rank') return (a.rank - b.rank) * dir;
 			if (k === 'zeroShot') return (a.zeroShotPct - b.zeroShotPct) * dir;
-			// Mean(Task) / Mean(TaskType) — push nulls to the bottom regardless of dir.
-			const va = k === 'meanTask' ? a.meanTask : a.meanTaskType;
-			const vb = k === 'meanTask' ? b.meanTask : b.meanTaskType;
+			// Numeric score/calibration fields — push nulls to the bottom
+			// regardless of direction.
+			const va =
+				k === 'meanTask'
+					? a.meanTask
+					: k === 'meanTaskType'
+						? a.meanTaskType
+						: k === 'ece'
+							? a.expectedCalibrationError
+							: a.meanNegativeLogLikelihood;
+			const vb =
+				k === 'meanTask'
+					? b.meanTask
+					: k === 'meanTaskType'
+						? b.meanTaskType
+						: k === 'ece'
+							? b.expectedCalibrationError
+							: b.meanNegativeLogLikelihood;
 			if (va == null && vb == null) return 0;
 			if (va == null) return 1;
 			if (vb == null) return -1;
@@ -85,6 +103,22 @@
 				<th scope="col" class="tbl-num" aria-sort={sort.aria('meanTaskType')}>
 					<SortHeader {sort} field="meanTaskType" label="Mean (TaskType)" />
 				</th>
+				<th
+					scope="col"
+					class="tbl-num"
+					aria-sort={sort.aria('ece')}
+					title={COLUMN_INFO.expectedCalibrationError.text}
+				>
+					<SortHeader {sort} field="ece" label="ECE" />
+				</th>
+				<th
+					scope="col"
+					class="tbl-num"
+					aria-sort={sort.aria('nll')}
+					title={COLUMN_INFO.meanNegativeLogLikelihood.text}
+				>
+					<SortHeader {sort} field="nll" label="NLL" />
+				</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -109,6 +143,8 @@
 					<td class="tbl-num {heat(s.meanTaskType, worstMeanTaskType, bestMeanTaskType)}">
 						{fmtPct(s.meanTaskType)}
 					</td>
+					<td class="tbl-num">{fmtEce(s.expectedCalibrationError)}</td>
+					<td class="tbl-num">{fmtNll(s.meanNegativeLogLikelihood)}</td>
 				</tr>
 			{/each}
 		</tbody>

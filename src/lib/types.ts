@@ -183,6 +183,11 @@ export interface SummaryRow {
 	// partial coverage — it would silently outrank fully-evaluated peers.
 	meanTask: number | null;
 	meanTaskType: number | null;
+	// Calibration metrics are reported separately from accuracy/rank. Both
+	// are lower-is-better and nullable when the aggregate cannot be rebuilt
+	// faithfully (for example, after excluding a view).
+	expectedCalibrationError?: number | null;
+	meanNegativeLogLikelihood?: number | null;
 	// Public/Private split means for benchmarks that hold out a private task
 	// subset (ViDoRe family). `null` for benchmarks without that split.
 	meanPublic?: number | null;
@@ -270,6 +275,8 @@ export interface TaskScoreRow {
 	// models that ran only ``test`` and models that ran both ``validation``
 	// and ``test``.
 	score: number | null;
+	expectedCalibrationError?: number | null;
+	meanNegativeLogLikelihood?: number | null;
 	// Nested map: subset → split → score. Missing inner keys mean the
 	// model wasn't evaluated on that (subset, split) cell. The frontend
 	// can pivot either axis off this one payload.
@@ -300,6 +307,8 @@ export interface ModelScoreRow {
 	totalModels: number;
 	meanTask: number | null;
 	meanTaskType: number | null;
+	expectedCalibrationError?: number | null;
+	meanNegativeLogLikelihood?: number | null;
 	zeroShotPct: number;
 	taskTypes: string[];
 	scoresByTaskType: Record<string, number>;

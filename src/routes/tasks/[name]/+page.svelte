@@ -180,6 +180,8 @@
 			return {
 				model: r.model,
 				score,
+				expectedCalibrationError: r.expectedCalibrationError,
+				meanNegativeLogLikelihood: r.meanNegativeLogLikelihood,
 				benchmarkName: r.benchmarks[0] ?? '',
 				subsetScores: flat,
 				trainedOn: r.trainedOn
@@ -273,12 +275,14 @@
 	}
 
 	function buildCsv() {
-		const headers = ['Rank', 'Model', 'Mean scores', ...subsets];
+		const headers = ['Rank', 'Model', 'Mean scores', 'ECE (%)', 'NLL', ...subsets];
 		const pct = (v: number | null | undefined) => (v == null ? null : (v * 100).toFixed(2));
 		const rows: CsvCell[][] = scores.map((s) => [
 			s.rank,
 			s.model.name,
 			pct(s.score),
+			pct(s.expectedCalibrationError),
+			s.meanNegativeLogLikelihood?.toFixed(6) ?? null,
 			...subsets.map((sub) => pct(s.subsetScores[sub]))
 		]);
 		return { headers, rows };
@@ -527,7 +531,7 @@
 			{/if}
 		</header>
 		{#if loadingScores}
-			<SkeletonTable rows={8} cols={6} />
+			<SkeletonTable rows={8} cols={8} />
 		{:else if scoresError}
 			<p class="muted">Failed to load scores: {scoresError}</p>
 		{:else if scores.length === 0}
