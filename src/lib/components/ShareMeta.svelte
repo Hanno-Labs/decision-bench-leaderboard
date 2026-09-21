@@ -58,6 +58,9 @@
 	// `http://localhost:5173`, which is fine for local sharing tests.
 	let origin = $derived(page.url.origin);
 	let canonicalUrl = $derived(page.url.href);
+	// Unlike `canonicalUrl` (og:url), drops query params (?q=, ?sort=, ?pin=)
+	// so filter/sort variants of a page consolidate to one indexable URL.
+	let canonicalHref = $derived(`${origin}${page.url.pathname}`);
 	// Per-entity hero takes precedence when the caller declares one. The
 	// PNG is served by the mteb FastAPI backend out of its persistent
 	// /data/og volume (see `mteb/api/og/generate.mjs`). When PUBLIC_API_URL
@@ -100,6 +103,7 @@
 	     remember on a per-route basis. Duplicates collapse to the last value
 	     in browsers — the value is the same, so it's a no-op. -->
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<link rel="canonical" href={canonicalHref} />
 
 	<!-- Open Graph: drives the rich preview on Slack, Discord, Facebook,
 	     LinkedIn, iMessage, and most chat clients. `og:type=website` is the
@@ -114,6 +118,7 @@
 	     the card out without having to download + inspect the PNG. Every
 	     hero we ship is the standard 1200 × 630 OG box. -->
 	<meta property="og:image" content={absImage} />
+	<meta property="og:image:alt" content={fullTitle} />
 	<meta property="og:image:type" content="image/png" />
 	<meta property="og:image:width" content="1200" />
 	<meta property="og:image:height" content="630" />
@@ -125,6 +130,7 @@
 	<meta name="twitter:title" content={fullTitle} />
 	<meta name="twitter:description" content={desc} />
 	<meta name="twitter:image" content={absImage} />
+	<meta name="twitter:image:alt" content={fullTitle} />
 	<meta name="twitter:image:type" content="image/png" />
 	<meta name="twitter:image:width" content="1200" />
 	<meta name="twitter:image:height" content="630" />
