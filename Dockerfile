@@ -20,7 +20,11 @@ RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
 COPY . .
 
-RUN npm run build
+RUN npm run build \
+    && test -f build/404.html \
+    && test -f build/leaderboard.json \
+    && test -d build/_app \
+    && cp build/404.html build/index.html
 
 # ---------- Stage 2: serve the prerendered output on :7860 ----------
 FROM nginxinc/nginx-unprivileged:1.27-alpine AS runtime
@@ -67,7 +71,15 @@ server {
 }
 NGINX
 
-COPY --from=build /src/build /usr/share/nginx/html
+# The nginx base image ships a stock index.html. The Svelte build above uses
+# 404.html as its SPA fallback, so clear the base document root before copying
+# the validated application bundle or nginx will serve its welcome page at `/`.
+USER 0
+RUN rm -rf /usr/share/nginx/html \
+    && mkdir -p /usr/share/nginx/html
+USER 101
+
+COPY --from=build /src/build/ /usr/share/nginx/html/
 
 EXPOSE 7860
 CMD ["nginx", "-g", "daemon off;"]
