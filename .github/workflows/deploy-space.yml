@@ -28,6 +28,8 @@ jobs:
         run: |
           destination="${RUNNER_TEMP}/decision-bench-space"
           mkdir -p "${destination}"
+          # Runtime result data is published by decision-bench-results. Frontend
+          # deploys must not replace it with this repo's development snapshot.
           rsync -a --delete \
             --exclude '.git/' \
             --exclude '.github/' \
@@ -35,6 +37,7 @@ jobs:
             --exclude 'build/' \
             --exclude 'node_modules/' \
             --exclude 'space/' \
+            --exclude 'static/leaderboard.json' \
             --exclude 'test-results/' \
             ./ "${destination}/"
           cp space/README.md "${destination}/README.md"
