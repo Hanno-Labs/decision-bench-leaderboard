@@ -93,19 +93,19 @@ test.describe('/benchmarks filter URL roundtrip', () => {
 		await waitForCatalogue(page);
 		const baseline = await cardCount(page);
 
-		await togglePill(sidebarCheckbox(page, 'Academic'));
+		await togglePill(sidebarCheckbox(page, 'Legal'));
 		await expect(page).toHaveURL(/[?&]doms=/);
 		await expect(activeChips(page)).toContainText('Domain');
 
 		const filteredUrl = page.url();
 		await page.goto(filteredUrl);
-		await expect(sidebarCheckbox(page, 'Academic')).not.toBeChecked();
+		await expect(sidebarCheckbox(page, 'Legal')).not.toBeChecked();
 		await expect(activeChips(page)).toContainText('Domain');
 
 		await resetAll(page).click();
 		await expect(page).toHaveURL(/\/benchmarks\/?$/);
 		await expect(activeStrip(page)).toHaveCount(0);
-		await expect(sidebarCheckbox(page, 'Academic')).toBeChecked();
+		await expect(sidebarCheckbox(page, 'Legal')).toBeChecked();
 		await expect.poll(() => cardCount(page)).toBe(baseline);
 	});
 
@@ -114,19 +114,19 @@ test.describe('/benchmarks filter URL roundtrip', () => {
 		await waitForCatalogue(page);
 		const baseline = await cardCount(page);
 
-		await togglePill(sidebarCheckbox(page, 'eng-Latn'));
+		await togglePill(sidebarCheckbox(page, 'English'));
 		await expect(page).toHaveURL(/[?&]langs=/);
 		await expect(activeChips(page)).toContainText('Lang');
 
 		const filteredUrl = page.url();
 		await page.goto(filteredUrl);
-		await expect(sidebarCheckbox(page, 'eng-Latn')).not.toBeChecked();
+		await expect(sidebarCheckbox(page, 'English')).not.toBeChecked();
 		await expect(activeChips(page)).toContainText('Lang');
 
 		await resetAll(page).click();
 		await expect(page).toHaveURL(/\/benchmarks\/?$/);
 		await expect(activeStrip(page)).toHaveCount(0);
-		await expect(sidebarCheckbox(page, 'eng-Latn')).toBeChecked();
+		await expect(sidebarCheckbox(page, 'English')).toBeChecked();
 		await expect.poll(() => cardCount(page)).toBe(baseline);
 	});
 
@@ -136,14 +136,14 @@ test.describe('/benchmarks filter URL roundtrip', () => {
 		const baseline = await cardCount(page);
 
 		const search = page.getByPlaceholder(/search/i).first();
-		await search.fill('MIEB');
-		await expect(page).toHaveURL(/[?&]q=MIEB/);
+		await search.fill('Choice');
+		await expect(page).toHaveURL(/[?&]q=Choice/);
 		await expect(activeChips(page)).toContainText('Name');
 		await expect.poll(() => cardCount(page)).toBeLessThan(baseline);
 
 		const filteredUrl = page.url();
 		await page.goto(filteredUrl);
-		await expect(page.getByPlaceholder(/search/i).first()).toHaveValue('MIEB');
+		await expect(page.getByPlaceholder(/search/i).first()).toHaveValue('Choice');
 		await expect(activeChips(page)).toContainText('Name');
 
 		await resetAll(page).click();
@@ -157,23 +157,17 @@ test.describe('/benchmarks filter URL roundtrip', () => {
 		// Empty pick set must serialise as `?mods=` (distinct from "no param").
 		await page.goto('/benchmarks');
 		await waitForCatalogue(page);
-		await togglePill(modalityCheckbox(page, 'audio'));
-		await togglePill(modalityCheckbox(page, 'image'));
 		await togglePill(modalityCheckbox(page, 'text'));
 		await expect(page).toHaveURL(/[?&]mods=(&|$)/);
 		await expect(activeChips(page).filter({ hasText: 'Modality' })).toBeVisible();
 
 		const emptyUrl = page.url();
 		await page.goto(emptyUrl);
-		await expect(modalityCheckbox(page, 'audio')).not.toBeChecked();
-		await expect(modalityCheckbox(page, 'image')).not.toBeChecked();
 		await expect(modalityCheckbox(page, 'text')).not.toBeChecked();
 		await expect(activeChips(page).filter({ hasText: 'Modality' })).toBeVisible();
 
 		await resetAll(page).click();
 		await expect(page).toHaveURL(/\/benchmarks\/?$/);
-		await expect(modalityCheckbox(page, 'audio')).toBeChecked();
-		await expect(modalityCheckbox(page, 'image')).toBeChecked();
 		await expect(modalityCheckbox(page, 'text')).toBeChecked();
 	});
 
@@ -183,22 +177,22 @@ test.describe('/benchmarks filter URL roundtrip', () => {
 		const baseline = await cardCount(page);
 
 		await togglePill(modalityCheckbox(page, 'text'));
-		await togglePill(sidebarCheckbox(page, 'Academic'));
+		await togglePill(sidebarCheckbox(page, 'Legal'));
 		await page
 			.getByPlaceholder(/search/i)
 			.first()
-			.fill('MTEB');
+			.fill('DecisionBench');
 
 		await expect(activeChips(page)).toHaveCount(3);
 		await expect(page).toHaveURL(/[?&]mods=/);
 		await expect(page).toHaveURL(/[?&]doms=/);
-		await expect(page).toHaveURL(/[?&]q=MTEB/);
+		await expect(page).toHaveURL(/[?&]q=DecisionBench/);
 
 		await resetAll(page).click();
 		await expect(page).toHaveURL(/\/benchmarks\/?$/);
 		await expect(activeStrip(page)).toHaveCount(0);
 		await expect(modalityCheckbox(page, 'text')).toBeChecked();
-		await expect(sidebarCheckbox(page, 'Academic')).toBeChecked();
+		await expect(sidebarCheckbox(page, 'Legal')).toBeChecked();
 		await expect.poll(() => cardCount(page)).toBe(baseline);
 	});
 });
@@ -208,7 +202,7 @@ test.describe('/tasks filter URL roundtrip', () => {
 		await page.goto('/tasks');
 		await expect(page.locator('a[href*="/tasks/"]').first()).toBeVisible({ timeout: 15_000 });
 
-		const retrievalPill = page.locator('aside.sidebar label.type-pill[data-stype="retrieval"]');
+		const retrievalPill = page.locator('aside.sidebar label.type-pill[data-stype="primitive"]');
 		const retrievalCb = retrievalPill.locator('input[type=checkbox]');
 		await expect(retrievalCb).toBeChecked();
 		await retrievalPill.locator('input[type=checkbox]').click({ force: true });
@@ -220,7 +214,7 @@ test.describe('/tasks filter URL roundtrip', () => {
 		const filteredUrl = page.url();
 		await page.goto(filteredUrl);
 		await expect(
-			page.locator('aside.sidebar label.type-pill[data-stype="retrieval"] input[type=checkbox]')
+			page.locator('aside.sidebar label.type-pill[data-stype="primitive"] input[type=checkbox]')
 		).not.toBeChecked();
 		await expect(activeChips(page)).toContainText('Type');
 
@@ -228,7 +222,7 @@ test.describe('/tasks filter URL roundtrip', () => {
 		await expect(page).toHaveURL(/\/tasks\/?$/);
 		await expect(activeStrip(page)).toHaveCount(0);
 		await expect(
-			page.locator('aside.sidebar label.type-pill[data-stype="retrieval"] input[type=checkbox]')
+			page.locator('aside.sidebar label.type-pill[data-stype="primitive"] input[type=checkbox]')
 		).toBeChecked();
 	});
 });
@@ -244,7 +238,7 @@ test.describe('/models filter URL roundtrip', () => {
 		await expect(activeStrip(page)).toHaveCount(0);
 
 		const densePill = page.locator(
-			'aside.sidebar label.model-type-pill[data-type="dense"] input[type=checkbox]'
+			'aside.sidebar label.model-type-pill[data-type="language-model"] input[type=checkbox]'
 		);
 		await expect(densePill).toBeChecked();
 		await densePill.click({ force: true });
@@ -256,7 +250,9 @@ test.describe('/models filter URL roundtrip', () => {
 		const filteredUrl = page.url();
 		await page.goto(filteredUrl);
 		await expect(
-			page.locator('aside.sidebar label.model-type-pill[data-type="dense"] input[type=checkbox]')
+			page.locator(
+				'aside.sidebar label.model-type-pill[data-type="language-model"] input[type=checkbox]'
+			)
 		).not.toBeChecked();
 		await expect(activeChips(page)).toContainText('Type');
 
@@ -264,7 +260,9 @@ test.describe('/models filter URL roundtrip', () => {
 		await expect(page).toHaveURL(/\/models\/?$/);
 		await expect(activeStrip(page)).toHaveCount(0);
 		await expect(
-			page.locator('aside.sidebar label.model-type-pill[data-type="dense"] input[type=checkbox]')
+			page.locator(
+				'aside.sidebar label.model-type-pill[data-type="language-model"] input[type=checkbox]'
+			)
 		).toBeChecked();
 	});
 
@@ -318,13 +316,13 @@ test.describe('/models filter URL roundtrip', () => {
 		await waitForModels(page);
 
 		const search = page.getByPlaceholder(/search/i).first();
-		await search.fill('cross');
-		await expect(page).toHaveURL(/[?&]q=cross/);
+		await search.fill('Jev');
+		await expect(page).toHaveURL(/[?&]q=Jev/);
 		await expect(activeChips(page)).toContainText('Name');
 
 		const filteredUrl = page.url();
 		await page.goto(filteredUrl);
-		await expect(page.getByPlaceholder(/search/i).first()).toHaveValue('cross');
+		await expect(page.getByPlaceholder(/search/i).first()).toHaveValue('Jev');
 		await expect(activeChips(page)).toContainText('Name');
 
 		await resetAll(page).click();
@@ -336,7 +334,7 @@ test.describe('/models filter URL roundtrip', () => {
 
 test.describe('/benchmark/[name] filter URL roundtrip (shared store path)', () => {
 	test('availability toggle: chip + URL + restore + Reset all', async ({ page }) => {
-		const url = '/benchmark/' + encodeURIComponent('MTEB(eng, v2)');
+		const url = '/benchmark/' + encodeURIComponent('DecisionBench');
 		await page.goto(url);
 		const openRadio = page.getByRole('radio', { name: 'Open', exact: true }).first();
 		await expect(openRadio).toBeVisible({ timeout: 20_000 });
@@ -360,7 +358,7 @@ test.describe('/benchmark/[name] filter URL roundtrip (shared store path)', () =
 });
 
 test.describe('/benchmark/[name] empty pick set drops every row', () => {
-	const url = '/benchmark/' + encodeURIComponent('MTEB(eng, v2)');
+	const url = '/benchmark/' + encodeURIComponent('DecisionBench / Domain / Legal');
 
 	async function waitForTable(page: Page) {
 		await expect(page.locator('table tbody tr').first()).toBeVisible({ timeout: 20_000 });

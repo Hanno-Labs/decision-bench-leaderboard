@@ -1,37 +1,66 @@
-import { building } from '$app/environment';
-import { PUBLIC_API_URL } from '$env/static/public';
+import { base } from '$app/paths';
 import type {
 	Benchmark,
 	BenchmarkLeaders,
 	BenchmarkPerLanguage,
 	BenchmarkSummary,
+	BucketLeader,
 	MenuEntry,
 	ModelFilters,
 	ModelMeta,
 	ModelScores,
+	SummaryRow,
 	TaskDescriptiveStats,
 	TaskFilters,
 	TaskMeta,
 	TaskScores
 } from '$lib/types';
 
-// Must use `$env/static/public` — `$env/dynamic/public` requires a runtime
-// the adapter-static build doesn't have.
-const API = PUBLIC_API_URL?.trim() ?? '';
-
-function noApiError(scope: string): Error {
-	return new Error(`${scope}: PUBLIC_API_URL is not set. Configure a backend URL.`);
+interface LeaderboardRow {
+	model: string;
+	revision: string;
+	model_url: string | null;
+	adapter: string;
+	probability_source: string;
+	open_weights: boolean | null;
+	parameter_count: number | null;
+	benchmark: string;
+	benchmark_version: string;
+	dataset_revision: string;
+	view: string;
+	view_kind: string;
+	view_name: string;
+	requested_rows: number | null;
+	successful_rows: number;
+	unsupported_rows: number | null;
+	error_rows: number | null;
+	coverage: number | null;
+	primary_accuracy: number | null;
+	supported_accuracy: number | null;
+	mean_negative_log_likelihood: number | null;
+	expected_calibration_error: number | null;
+	mean_latency_seconds: number | null;
+	artifact_uri: string;
+	artifact_manifest_sha256: string;
+	result_path: string;
 }
 
-const API_BASE = `${API}/v1`;
+interface ViewDefinition {
+	key: string;
+	kind: 'benchmark' | 'primitive' | 'family' | 'domain' | 'candidate_count';
+	name: string;
+	benchmarkName: string;
+	displayName: string;
+}
 
-// Loaders accept SvelteKit's `event.fetch` so prerender responses are inlined
-// into the HTML/data payload.
 type FetchFn = typeof globalThis.fetch;
 
-// Typed so loaders can distinguish 404s from transient backend failures and
-// throw `error(404, ...)` for the former without false-positiving on 5xx /
-// network errors.
+const DATA_URL = `${base}/leaderboard.json`;
+const RESULTS_REPOSITORY = 'https://github.com/Hanno-Labs/decision-bench-results';
+const BENCHMARK_REPOSITORY = 'https://github.com/Hanno-Labs/decision-bench';
+
+let rowsPromise: Promise<LeaderboardRow[]> | null = null;
+
 export class HttpError extends Error {
 	constructor(
 		public status: number,
@@ -43,268 +72,500 @@ export class HttpError extends Error {
 	}
 }
 
-async function http<T>(path: string, fetchFn: FetchFn = globalThis.fetch): Promise<T> {
-	const res = await fetchFn(`${API_BASE}${path}`);
-	if (!res.ok) throw new HttpError(res.status, res.statusText, path);
-	return (await res.json()) as T;
+function titleCase(value: string): string {
+	return value
+		.split('_')
+		.map((part) => (part ? part[0].toUpperCase() + part.slice(1) : part))
+		.join(' ');
 }
 
-// Session-scoped LRU + in-flight dedupe. Bounded so a long-lived tab
-// visiting many benchmarks (each summary MB-sized) doesn't grow unbounded.
-// Raised during prerender so `loadBenchmarks() / loadTasks() / loadModels()`
-// can prime every per-name slot (~500 each) without evicting them before
-// the per-page loaders run — every detail-route load becomes a sync cache
-// hit instead of a fresh HTTP round-trip.
-const RESPONSE_CACHE_MAX = building ? 10_000 : 64;
-const responseCache = new Map<string, unknown>();
-const inflight = new Map<string, Promise<unknown>>();
-
-function cacheTouch(path: string, value: unknown) {
-	if (responseCache.has(path)) responseCache.delete(path);
-	responseCache.set(path, value);
-	while (responseCache.size > RESPONSE_CACHE_MAX) {
-		const oldest = responseCache.keys().next().value;
-		if (oldest === undefined) break;
-		responseCache.delete(oldest);
+function displayViewName(kind: string, name: string): string {
+	if (kind === 'primitive') {
+		if (name === 'binary_classification') return 'Boolean / Noul';
+		if (name === 'candidate_selection') return 'Choice';
+		if (name === 'ordinal_scoring') return 'Ordered Score';
 	}
+	if (kind === 'candidate_count') return `${name} candidates`;
+	return titleCase(name);
 }
 
-async function cachedHttp<T>(path: string, fetchFn?: FetchFn): Promise<T> {
-	if (responseCache.has(path)) {
-		const v = responseCache.get(path) as T;
-		cacheTouch(path, v);
-		return v;
-	}
-	const existing = inflight.get(path);
-	if (existing) return existing as Promise<T>;
-	const p = http<T>(path, fetchFn)
-		.then((v) => {
-			cacheTouch(path, v);
-			inflight.delete(path);
-			return v;
-		})
-		.catch((e) => {
-			inflight.delete(path);
-			throw e;
+async function loadRows(fetchFn: FetchFn = globalThis.fetch): Promise<LeaderboardRow[]> {
+	if (!rowsPromise) {
+		rowsPromise = fetchFn(DATA_URL).then(async (response) => {
+			if (!response.ok) throw new HttpError(response.status, response.statusText, DATA_URL);
+			const value = (await response.json()) as unknown;
+			if (!Array.isArray(value)) throw new Error('leaderboard.json must contain an array');
+			return value as LeaderboardRow[];
 		});
-	inflight.set(path, p as Promise<unknown>);
-	return p;
-}
-
-// API ships only `name` ("org/displayName" HF identifier); derive the split
-// client-side and mutate in place.
-function fillOrgAndDisplay(m: ModelMeta | null | undefined): ModelMeta | null | undefined {
-	if (!m || !m.name) return m;
-	if (m.org !== undefined && m.displayName !== undefined) return m;
-	const i = m.name.indexOf('/');
-	if (i >= 0) {
-		m.org = m.org ?? m.name.slice(0, i);
-		m.displayName = m.displayName ?? m.name.slice(i + 1);
-	} else {
-		m.org = m.org ?? '';
-		m.displayName = m.displayName ?? m.name;
 	}
-	return m;
+	return rowsPromise;
 }
 
-// WeakSet marks already-enriched payloads — a second call on a cached summary
-// would iterate every row for no effect.
-const _enrichedSummaries = new WeakSet<BenchmarkSummary>();
-function enrichSummary(s: BenchmarkSummary): BenchmarkSummary {
-	if (_enrichedSummaries.has(s)) return s;
-	for (const row of s.rows) fillOrgAndDisplay(row.model);
-	// Dedupe required: MTEB(cmn, v1) ships duplicate task names, which crash
-	// keyed `{#each}` blocks downstream.
-	s.taskTypes = [...new Set(s.taskTypes)].sort((a, b) => a.localeCompare(b));
-	s.tasks = [...new Set(s.tasks)].sort((a, b) => a.localeCompare(b));
-	_enrichedSummaries.add(s);
-	return s;
+function unique<T>(values: Iterable<T>): T[] {
+	return [...new Set(values)];
 }
 
-function enrichTaskScores(s: TaskScores): TaskScores {
-	for (const row of s.rows) fillOrgAndDisplay(row.model);
-	return s;
+function scoreOf(row: LeaderboardRow | undefined): number | null {
+	if (!row) return null;
+	return row.view === 'overall' ? row.primary_accuracy : row.supported_accuracy;
 }
 
-// Older task records ship null arrays; coerce so downstream `.length` / `.some()`
-// calls don't need guards.
-function normalizeTaskMeta(t: TaskMeta): TaskMeta {
-	t.languages ??= [];
-	t.domains ??= [];
-	t.modalities ??= [];
-	return t;
+function viewDefinitions(rows: readonly LeaderboardRow[]): ViewDefinition[] {
+	const definitions: ViewDefinition[] = [
+		{
+			key: 'overall',
+			kind: 'benchmark',
+			name: 'overall',
+			benchmarkName: 'DecisionBench',
+			displayName: 'DecisionBench'
+		}
+	];
+	for (const kind of ['primitive', 'family', 'domain', 'candidate_count'] as const) {
+		const names = unique(
+			rows.filter((row) => row.view_kind === kind).map((row) => row.view_name)
+		).sort();
+		for (const name of names) {
+			const displayName = displayViewName(kind, name);
+			definitions.push({
+				key: `${kind}:${name}`,
+				kind,
+				name,
+				benchmarkName: `DecisionBench / ${titleCase(kind)} / ${displayName}`,
+				displayName
+			});
+		}
+	}
+	return definitions;
 }
 
-function enrichModelScores(s: ModelScores): ModelScores {
-	fillOrgAndDisplay(s.model);
-	return s;
+function taskName(kind: string, name: string): string {
+	return `${titleCase(kind)}: ${displayViewName(kind, name)}`;
+}
+
+function taskMeta(kind: string, name: string, rows: readonly LeaderboardRow[]): TaskMeta {
+	const key = `${kind}:${name}`;
+	const rowCount = rows.find((row) => row.view === key)?.successful_rows ?? 0;
+	const modelCount = new Set(rows.filter((row) => row.view === key).map((row) => row.model)).size;
+	return {
+		name: taskName(kind, name),
+		type: titleCase(kind),
+		simplifiedType: kind,
+		languages: ['English'],
+		domains: kind === 'domain' ? [displayViewName(kind, name)] : [],
+		modalities: ['text'],
+		description:
+			kind === 'candidate_count'
+				? `Decision quality on rows with exactly ${name} candidates.`
+				: `DecisionBench ${kind} slice for ${displayViewName(kind, name)}.`,
+		reference: BENCHMARK_REPOSITORY,
+		citation: null,
+		isPublic: false,
+		sourceDataset: 'Hanno-Labs/decision-bench',
+		license: null,
+		dateFrom: null,
+		dateTo: null,
+		annotationsCreators: 'derived',
+		dialect: null,
+		sampleCreation: `${rowCount.toLocaleString()} successfully scored rows in the reviewed result record.`,
+		mainScore: 'accuracy',
+		numModels: modelCount
+	};
+}
+
+function allTaskMeta(rows: readonly LeaderboardRow[]): TaskMeta[] {
+	const pairs = unique(rows.filter((row) => row.view !== 'overall').map((row) => row.view));
+	return pairs
+		.map((key) => {
+			const [kind, ...rest] = key.split(':');
+			return taskMeta(kind, rest.join(':'), rows);
+		})
+		.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function modelType(row: LeaderboardRow): ModelMeta['modelType'] {
+	if (row.open_weights === false) return 'api';
+	if (/deberta/i.test(row.model) || /deberta/i.test(row.adapter)) return 'classifier';
+	if (/qwen|bosun|jev|nimble|scorer/i.test(`${row.model} ${row.adapter}`)) return 'language-model';
+	return 'decision-model';
+}
+
+function toModelMeta(row: LeaderboardRow): ModelMeta {
+	const separator = row.model.indexOf('/');
+	const org = separator >= 0 ? row.model.slice(0, separator) : '';
+	const displayName = separator >= 0 ? row.model.slice(separator + 1) : row.model;
+	const paramsB = row.parameter_count == null ? null : row.parameter_count / 1_000_000_000;
+	const openWeights = row.open_weights === true;
+	return {
+		name: row.model,
+		displayName,
+		org,
+		url: row.model_url ?? undefined,
+		zeroShotPct: 100,
+		activeParamsB: paramsB,
+		totalParamsB: paramsB,
+		embeddingDim: null,
+		maxTokens: null,
+		modelType: modelType(row),
+		instructionTuned: /qwen|bosun|jev|nimble|gpt|luna/i.test(`${row.model} ${row.adapter}`),
+		openWeights,
+		openness: {
+			'open weights': openWeights,
+			'open license': openWeights,
+			'open training code': false,
+			'open training data': false,
+			paper: false,
+			'model card': Boolean(row.model_url)
+		},
+		opennessScore: openWeights ? 3 : 1,
+		sentenceTransformersCompatible: false,
+		modalities: ['text'],
+		languages: ['English'],
+		citation: null,
+		memoryUsageMb: null,
+		license: null,
+		publicTrainingCode: null,
+		publicTrainingData: null,
+		adaptedFrom: null,
+		supersededBy: null,
+		extraRequirementsGroups: null,
+		trainingDatasets: []
+	};
+}
+
+function rowsByModel(rows: readonly LeaderboardRow[]): Map<string, LeaderboardRow[]> {
+	const grouped = new Map<string, LeaderboardRow[]>();
+	for (const row of rows) {
+		const list = grouped.get(row.model) ?? [];
+		list.push(row);
+		grouped.set(row.model, list);
+	}
+	return grouped;
+}
+
+function benchmarkFor(definition: ViewDefinition, rows: readonly LeaderboardRow[]): Benchmark {
+	const allFamilies = unique(
+		rows.filter((row) => row.view_kind === 'family').map((row) => row.view_name)
+	);
+	const allDomains = unique(
+		rows.filter((row) => row.view_kind === 'domain').map((row) => row.view_name)
+	);
+	const allPrimitives = unique(
+		rows.filter((row) => row.view_kind === 'primitive').map((row) => row.view_name)
+	);
+	const tasks =
+		definition.kind === 'benchmark'
+			? allFamilies.map((name) => taskName('family', name)).sort()
+			: [taskName(definition.kind, definition.name)];
+	const taskTypes =
+		definition.kind === 'benchmark'
+			? allPrimitives.map((name) => displayViewName('primitive', name)).sort()
+			: [titleCase(definition.kind)];
+	const modelCount = new Set(
+		rows
+			.filter((row) => row.view === definition.key && scoreOf(row) != null)
+			.map((row) => row.model)
+	).size;
+	const scope = definition.kind === 'benchmark' ? 'the full benchmark' : definition.displayName;
+	return {
+		name: definition.benchmarkName,
+		displayName: definition.displayName,
+		icon:
+			definition.kind === 'benchmark'
+				? '◈'
+				: definition.kind === 'primitive'
+					? '◆'
+					: definition.kind === 'family'
+						? '◇'
+						: '○',
+		description: `Reviewed DecisionBench results for ${scope}. Unsupported and error rows count as misses in the full-benchmark primary score.`,
+		reference: RESULTS_REPOSITORY,
+		citation: undefined,
+		languages: ['English'],
+		taskTypes,
+		simplifiedTaskTypes: definition.kind === 'benchmark' ? ['decision'] : [definition.kind],
+		tasks,
+		domains:
+			definition.kind === 'domain'
+				? [definition.displayName]
+				: definition.kind === 'benchmark'
+					? allDomains.map((name) => displayViewName('domain', name)).sort()
+					: [],
+		modalities: ['text'],
+		displayOnLeaderboard: true,
+		newVersion: null,
+		aggregations: definition.kind === 'benchmark' ? ['mean_task', 'task_types'] : ['mean_task'],
+		showZeroShot: false,
+		numModels: modelCount,
+		languageView: null
+	};
+}
+
+function definitionForBenchmark(name: string, rows: readonly LeaderboardRow[]): ViewDefinition {
+	const definition = viewDefinitions(rows).find((item) => item.benchmarkName === name);
+	if (!definition) throw new HttpError(404, 'Not Found', name);
+	return definition;
+}
+
+function summaryFor(definition: ViewDefinition, rows: readonly LeaderboardRow[]): BenchmarkSummary {
+	const grouped = rowsByModel(rows);
+	const familyNames = unique(
+		rows.filter((row) => row.view_kind === 'family').map((row) => row.view_name)
+	);
+	const primitiveNames = unique(
+		rows.filter((row) => row.view_kind === 'primitive').map((row) => row.view_name)
+	);
+	const taskNames =
+		definition.kind === 'benchmark'
+			? familyNames.map((name) => taskName('family', name)).sort()
+			: [taskName(definition.kind, definition.name)];
+	const taskTypes =
+		definition.kind === 'benchmark'
+			? primitiveNames.map((name) => displayViewName('primitive', name)).sort()
+			: [titleCase(definition.kind)];
+	const summaryRows: SummaryRow[] = [];
+	for (const modelRows of grouped.values()) {
+		const current = modelRows.find((row) => row.view === definition.key);
+		const score = scoreOf(current);
+		if (!current || score == null) continue;
+		const scoresByTask: Record<string, number> = {};
+		if (definition.kind === 'benchmark') {
+			for (const name of familyNames) {
+				const value = scoreOf(modelRows.find((row) => row.view === `family:${name}`));
+				if (value != null) scoresByTask[taskName('family', name)] = value;
+			}
+		} else {
+			scoresByTask[taskName(definition.kind, definition.name)] = score;
+		}
+		const scoresByTaskType: Record<string, number> = {};
+		if (definition.kind === 'benchmark') {
+			for (const name of primitiveNames) {
+				const value = scoreOf(modelRows.find((row) => row.view === `primitive:${name}`));
+				if (value != null) scoresByTaskType[displayViewName('primitive', name)] = value;
+			}
+		} else {
+			scoresByTaskType[titleCase(definition.kind)] = score;
+		}
+		const model = toModelMeta(current);
+		summaryRows.push({
+			rank: 0,
+			model,
+			zeroShotPct: 100,
+			activeParamsB: model.activeParamsB,
+			totalParamsB: model.totalParamsB,
+			embeddingDim: null,
+			maxTokens: null,
+			meanTask: score,
+			meanTaskType: score,
+			scoresByTaskType,
+			scoresByTask,
+			trainedOnTasks: [],
+			experiments: null
+		});
+	}
+	summaryRows.sort((a, b) => (b.meanTask ?? -1) - (a.meanTask ?? -1));
+	summaryRows.forEach((row, index) => (row.rank = index + 1));
+	const tasksMeta = taskNames.map((name) => {
+		const [kindLabel, ...rest] = name.split(': ');
+		const kind = kindLabel.toLowerCase();
+		const display = rest.join(': ');
+		const rawName =
+			rows.find((row) => row.view_kind === kind && displayViewName(kind, row.view_name) === display)
+				?.view_name ?? display.toLowerCase().replaceAll(' ', '_');
+		return taskMeta(kind, rawName, rows);
+	});
+	return {
+		benchmarkName: definition.benchmarkName,
+		taskTypes,
+		tasks: taskNames,
+		tasksMeta,
+		rows: summaryRows,
+		aggregations: definition.kind === 'benchmark' ? ['mean_task', 'task_types'] : ['mean_task'],
+		showZeroShot: false
+	};
 }
 
 export async function loadBenchmarkMenu(fetchFn?: FetchFn): Promise<MenuEntry[]> {
-	if (!API) throw noApiError('loadBenchmarkMenu');
-	return cachedHttp<MenuEntry[]>('/benchmarks/menu', fetchFn);
+	const rows = await loadRows(fetchFn);
+	const definitions = viewDefinitions(rows);
+	const section = (name: string, kind: ViewDefinition['kind']): MenuEntry => ({
+		name,
+		open: kind === 'benchmark' || kind === 'primitive',
+		children: definitions
+			.filter((definition) => definition.kind === kind)
+			.map((definition) => benchmarkFor(definition, rows))
+	});
+	return [
+		section('Primary benchmark', 'benchmark'),
+		section('Decision primitives', 'primitive'),
+		section('Application families', 'family'),
+		section('Domains', 'domain'),
+		section('Candidate counts', 'candidate_count')
+	];
 }
 
-/** Flat list of every benchmark, including off-menu and hidden entries. */
 export async function loadBenchmarks(fetchFn?: FetchFn): Promise<Benchmark[]> {
-	if (!API) throw noApiError('loadBenchmarks');
-	const out = await cachedHttp<Benchmark[]>(`/benchmarks?include_hidden=true`, fetchFn);
-	// Prime per-name slots so the prerender enumerator's `loadBenchmark` calls
-	// hit cache instead of issuing 1+N requests.
-	for (const b of out) cacheTouch(`/benchmarks/${encodeURIComponent(b.name)}`, b);
-	return out;
+	const rows = await loadRows(fetchFn);
+	return viewDefinitions(rows).map((definition) => benchmarkFor(definition, rows));
 }
 
 export async function loadBenchmark(name: string, fetchFn?: FetchFn): Promise<Benchmark> {
-	if (!API) throw noApiError('loadBenchmark');
-	return cachedHttp<Benchmark>(`/benchmarks/${encodeURIComponent(name)}`, fetchFn);
+	const rows = await loadRows(fetchFn);
+	return benchmarkFor(definitionForBenchmark(name, rows), rows);
 }
 
-// Bridge a `+page.ts` data value into the runtime cache so a subsequent
-// `loadBenchmark(name)` call resolves synchronously.
 export function primeBenchmarkCache(name: string, value: Benchmark): void {
-	cacheTouch(`/benchmarks/${encodeURIComponent(name)}`, value);
+	// The single immutable JSON snapshot is already request-deduplicated.
+	void name;
+	void value;
 }
 
 export async function loadSummary(
 	benchmarkName: string,
-	languages?: ReadonlyArray<string>,
+	_languages?: ReadonlyArray<string>,
 	fetchFn?: FetchFn
 ): Promise<BenchmarkSummary> {
-	if (!API) throw noApiError('loadSummary');
-	// Sort languages so the cache key is stable across pick order.
-	let qs = '';
-	if (languages && languages.length) {
-		const unique = Array.from(new Set(languages)).sort();
-		qs = `?languages=${unique.map(encodeURIComponent).join(',')}`;
-	}
-	return enrichSummary(
-		await cachedHttp<BenchmarkSummary>(
-			`/benchmarks/${encodeURIComponent(benchmarkName)}/scores${qs}`,
-			fetchFn
-		)
-	);
+	const rows = await loadRows(fetchFn);
+	return summaryFor(definitionForBenchmark(benchmarkName, rows), rows);
 }
 
-/** Per-(model, language) mean main_score; empty rows when no per-language data exists. */
 export async function loadPerLanguage(
 	benchmarkName: string,
 	fetchFn?: FetchFn
 ): Promise<BenchmarkPerLanguage> {
-	if (!API) throw noApiError('loadPerLanguage');
-	return cachedHttp<BenchmarkPerLanguage>(
-		`/benchmarks/${encodeURIComponent(benchmarkName)}/per-language`,
-		fetchFn
-	);
+	void fetchFn;
+	return { benchmarkName, rows: [] };
 }
 
-/** Slim per-size-bucket leaders; `null` max = open-ended top bucket. */
 export async function loadLeaders(
 	benchmarkName: string,
 	buckets: ReadonlyArray<readonly [number, number | null]>,
 	fetchFn?: FetchFn
 ): Promise<BenchmarkLeaders> {
-	if (!API) throw noApiError('loadLeaders');
-	const buf: Array<[number, number | null]> = buckets.map(([lo, hi]) => [lo, hi]);
-	const qs = `buckets=${encodeURIComponent(JSON.stringify(buf))}`;
-	return cachedHttp<BenchmarkLeaders>(
-		`/benchmarks/${encodeURIComponent(benchmarkName)}/leaders?${qs}`,
-		fetchFn
-	);
-}
-
-function toSnake(s: string): string {
-	return s.replace(/[A-Z]/g, (m) => '_' + m.toLowerCase());
-}
-
-function buildQuery(params: Record<string, unknown>): string {
-	const sp = new URLSearchParams();
-	for (const [rawKey, v] of Object.entries(params)) {
-		if (v === undefined || v === null) continue;
-		const k = toSnake(rawKey);
-		if (Array.isArray(v)) {
-			if (v.length === 0) continue;
-			for (const item of v) sp.append(k, String(item));
-		} else if (typeof v === 'boolean') {
-			sp.append(k, v ? 'true' : 'false');
-		} else {
-			sp.append(k, String(v));
-		}
-	}
-	const q = sp.toString();
-	return q ? `?${q}` : '';
+	const rows = await loadRows(fetchFn);
+	const summary = summaryFor(definitionForBenchmark(benchmarkName, rows), rows);
+	const leaders: BucketLeader[] = buckets.map(([min, max], index) => {
+		const row = summary.rows[index];
+		return {
+			min,
+			max,
+			leader: row
+				? {
+						rank: row.rank,
+						model: { name: row.model.name, modelType: row.model.modelType },
+						meanTask: row.meanTask,
+						totalParamsB: row.totalParamsB
+					}
+				: null
+		};
+	});
+	return { benchmarkName, buckets: leaders };
 }
 
 export async function loadTasks(filters: TaskFilters = {}, fetchFn?: FetchFn): Promise<TaskMeta[]> {
-	if (!API) throw noApiError('loadTasks');
-	const out = await cachedHttp<TaskMeta[]>(
-		`/tasks${buildQuery(filters as Record<string, unknown>)}`,
-		fetchFn
-	);
-	// Mirror the benchmarks priming: warm per-name slots so each detail
-	// route's `loadTask(name)` is a sync cache hit during prerender. Only
-	// safe to prime when the catalog isn't narrowed — a filtered list
-	// doesn't represent the per-name resource.
-	const prime = Object.keys(filters).length === 0;
-	for (const t of out) {
-		normalizeTaskMeta(t);
-		if (prime) cacheTouch(`/tasks/${encodeURIComponent(t.name)}`, t);
+	const rows = await loadRows(fetchFn);
+	let tasks = allTaskMeta(rows);
+	if (filters.name) {
+		const query = filters.name.toLowerCase();
+		tasks = tasks.filter((task) => task.name.toLowerCase().includes(query));
 	}
-	return out;
+	if (filters.types?.length) tasks = tasks.filter((task) => filters.types!.includes(task.type));
+	if (filters.domains?.length)
+		tasks = tasks.filter((task) =>
+			task.domains.some((domain) => filters.domains!.includes(domain))
+		);
+	return tasks;
 }
 
 export async function loadTask(name: string, fetchFn?: FetchFn): Promise<TaskMeta> {
-	if (!API) throw noApiError('loadTask');
-	return normalizeTaskMeta(
-		await cachedHttp<TaskMeta>(`/tasks/${encodeURIComponent(name)}`, fetchFn)
-	);
+	const tasks = await loadTasks({}, fetchFn);
+	const task = tasks.find((item) => item.name === name);
+	if (!task) throw new HttpError(404, 'Not Found', name);
+	return task;
 }
 
 export async function loadTaskScores(name: string, fetchFn?: FetchFn): Promise<TaskScores> {
-	if (!API) throw noApiError('loadTaskScores');
-	return enrichTaskScores(
-		await cachedHttp<TaskScores>(`/tasks/${encodeURIComponent(name)}/scores`, fetchFn)
-	);
+	const rows = await loadRows(fetchFn);
+	const task = await loadTask(name, fetchFn);
+	const [kindLabel, ...displayParts] = name.split(': ');
+	const kind = kindLabel.toLowerCase();
+	const display = displayParts.join(': ');
+	const rawName =
+		rows.find((row) => row.view_kind === kind && displayViewName(kind, row.view_name) === display)
+			?.view_name ?? display.toLowerCase().replaceAll(' ', '_');
+	const view = `${kind}:${rawName}`;
+	const matching = rows
+		.filter((row) => row.view === view && scoreOf(row) != null)
+		.sort((a, b) => (scoreOf(b) ?? -1) - (scoreOf(a) ?? -1));
+	return {
+		task,
+		benchmarks: [`DecisionBench / ${titleCase(kind)} / ${display}`],
+		subsets: ['default'],
+		splits: ['test'],
+		rows: matching.map((row, index) => ({
+			rank: index + 1,
+			model: toModelMeta(row),
+			score: scoreOf(row),
+			subsetScores: { default: { test: scoreOf(row) ?? 0 } },
+			benchmarks: [`DecisionBench / ${titleCase(kind)} / ${display}`],
+			trainedOn: null
+		}))
+	};
 }
 
 export async function loadTaskDescriptiveStats(
 	name: string,
 	fetchFn?: FetchFn
 ): Promise<TaskDescriptiveStats> {
-	if (!API) throw noApiError('loadTaskDescriptiveStats');
-	return cachedHttp<TaskDescriptiveStats>(
-		`/tasks/${encodeURIComponent(name)}/descriptive_statistics`,
-		fetchFn
-	);
+	void name;
+	void fetchFn;
+	return {};
 }
 
 export async function loadModels(
 	filters: ModelFilters = {},
 	fetchFn?: FetchFn
 ): Promise<ModelMeta[]> {
-	if (!API) throw noApiError('loadModels');
-	const out = await cachedHttp<ModelMeta[]>(
-		`/models${buildQuery(filters as Record<string, unknown>)}`,
-		fetchFn
-	);
-	const prime = Object.keys(filters).length === 0;
-	for (const m of out) {
-		fillOrgAndDisplay(m);
-		if (prime) cacheTouch(`/models/${encodeURIComponent(m.name)}`, m);
+	const rows = await loadRows(fetchFn);
+	const firstByModel = new Map<string, LeaderboardRow>();
+	for (const row of rows) if (!firstByModel.has(row.model)) firstByModel.set(row.model, row);
+	let models = [...firstByModel.values()].map(toModelMeta);
+	if (filters.name) {
+		const query = filters.name.toLowerCase();
+		models = models.filter((model) => model.name.toLowerCase().includes(query));
 	}
-	return out;
+	if (filters.openWeights != null)
+		models = models.filter((model) => model.openWeights === filters.openWeights);
+	if (filters.modelTypes?.length)
+		models = models.filter((model) => filters.modelTypes!.includes(model.modelType));
+	return models.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function loadModel(name: string, fetchFn?: FetchFn): Promise<ModelMeta> {
-	if (!API) throw noApiError('loadModel');
-	return fillOrgAndDisplay(
-		await cachedHttp<ModelMeta>(`/models/${encodeURIComponent(name)}`, fetchFn)
-	) as ModelMeta;
+	const models = await loadModels({}, fetchFn);
+	const model = models.find((item) => item.name === name);
+	if (!model) throw new HttpError(404, 'Not Found', name);
+	return model;
 }
 
 export async function loadModelScores(name: string, fetchFn?: FetchFn): Promise<ModelScores> {
-	if (!API) throw noApiError('loadModelScores');
-	return enrichModelScores(
-		await cachedHttp<ModelScores>(`/models/${encodeURIComponent(name)}/scores`, fetchFn)
-	);
+	const rows = await loadRows(fetchFn);
+	const model = await loadModel(name, fetchFn);
+	const resultRows = [];
+	for (const definition of viewDefinitions(rows)) {
+		const summary = summaryFor(definition, rows);
+		const row = summary.rows.find((item) => item.model.name === name);
+		if (!row) continue;
+		resultRows.push({
+			benchmarkName: definition.benchmarkName,
+			benchmarkDisplayName: definition.displayName,
+			rank: row.rank,
+			totalModels: summary.rows.length,
+			meanTask: row.meanTask,
+			meanTaskType: row.meanTaskType,
+			zeroShotPct: 100,
+			taskTypes: summary.taskTypes,
+			scoresByTaskType: row.scoresByTaskType
+		});
+	}
+	return { model, rows: resultRows };
 }

@@ -3,7 +3,7 @@ import type { PageLoad } from './$types';
 import { loadBenchmarks } from '$lib/data/service';
 import type { Benchmark } from '$lib/types';
 
-export const prerender = true;
+export const prerender = !process.env.BUILD_NO_PRERENDER;
 
 export interface BenchmarksData {
 	all: Benchmark[];

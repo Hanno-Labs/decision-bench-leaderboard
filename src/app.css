@@ -299,23 +299,19 @@ code {
 
 /* Per-model-type tints — `data-type` exposes `--category-tint(-fg)`.
    `[data-model-type]` in leaderboard-table.css covers row-cell tints. */
-:where([data-type='dense']) {
+:where([data-type='decision-model']) {
 	--category-tint: var(--tint-blue);
 	--category-tint-fg: var(--tint-blue-fg);
 }
-:where([data-type='cross-encoder']) {
+:where([data-type='language-model']) {
 	--category-tint: var(--tint-orange);
 	--category-tint-fg: var(--tint-orange-fg);
 }
-:where([data-type='late-interaction']) {
+:where([data-type='classifier']) {
 	--category-tint: var(--tint-teal);
 	--category-tint-fg: var(--tint-teal-fg);
 }
-:where([data-type='sparse']) {
-	--category-tint: var(--tint-amber);
-	--category-tint-fg: var(--tint-amber-fg);
-}
-:where([data-type='router']) {
+:where([data-type='api']) {
 	--category-tint: var(--tint-purple);
 	--category-tint-fg: var(--tint-purple-fg);
 }

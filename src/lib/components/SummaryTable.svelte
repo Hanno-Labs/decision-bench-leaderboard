@@ -13,7 +13,7 @@
 		},
 		model: {
 			title: 'Model',
-			text: 'Missing results — the model may not have been run on the tasks in the benchmark. We only display models that have been run on at least one task. To submit results, see the [submitting results guide](https://embeddings-benchmark.github.io/mteb/contributing/submitting_results/).'
+			text: 'Missing results mean the model has not been evaluated on this benchmark slice. To submit results, see the [DecisionBench submission guide](https://github.com/Hanno-Labs/decision-bench/blob/main/docs/submitting-results.md).'
 		},
 		zeroShot: {
 			title: 'Zero-shot %',

@@ -1,16 +1,11 @@
 import { test, expect } from '@playwright/test';
 
-// Benchmark detail page hero + tab switching. Uses the deterministic
-// mock benchmark (MTEB(eng, v2)) so the assertions don't depend on a
-// live backend.
+// Benchmark detail page hero + tab switching against the reviewed snapshot.
 
-const BENCH = 'MTEB(eng, v2)';
+const BENCH = 'DecisionBench';
 const SLUG = encodeURIComponent(BENCH);
-const ALIAS = 'MTEB(eng)';
-const ALIAS_SLUG = encodeURIComponent(ALIAS);
-// MTEB(eng, v2) has no language_view, so its perf_language tab is
-// hidden — use the multilingual mock for that deep-link test.
-const MULTI_SLUG = encodeURIComponent('MTEB(Multilingual, v2)');
+const SLICE = 'DecisionBench / Primitive / Choice';
+const SLICE_SLUG = encodeURIComponent(SLICE);
 
 test('benchmark detail page loads the hero and the summary tab by default', async ({ page }) => {
 	await page.goto(`/benchmark/${SLUG}/`);
@@ -35,26 +30,16 @@ test('tab switching activates the selected tab and updates the URL', async ({ pa
 });
 
 test('the URL ?tab= param rehydrates the active tab on load', async ({ page }) => {
-	await page.goto(`/benchmark/${MULTI_SLUG}/?tab=perf_language`);
-	await expect(page.getByRole('tab', { name: 'Performance per language' })).toHaveAttribute(
+	await page.goto(`/benchmark/${SLUG}/?tab=perf_task`);
+	await expect(page.getByRole('tab', { name: 'Performance per task' })).toHaveAttribute(
 		'aria-selected',
 		'true'
 	);
 });
 
-test('benchmark alias route fetches summary with the canonical benchmark name', async ({
-	page
-}) => {
-	const scorePaths: string[] = [];
-	page.on('request', (request) => {
-		const path = decodeURIComponent(new URL(request.url()).pathname);
-		if (path.includes('/scores')) scorePaths.push(path);
-	});
+test('primitive slice route loads its own reviewed summary', async ({ page }) => {
+	await page.goto(`/benchmark/${SLICE_SLUG}/`);
 
-	await page.goto(`/benchmark/${ALIAS_SLUG}/`);
-
-	await expect(page.getByRole('heading', { name: BENCH }).first()).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Choice' }).first()).toBeVisible();
 	await expect(page.locator('table thead').first()).toBeVisible();
-	expect(scorePaths).toContain(`/v1/benchmarks/${BENCH}/scores`);
-	expect(scorePaths).not.toContain(`/v1/benchmarks/${ALIAS}/scores`);
 });

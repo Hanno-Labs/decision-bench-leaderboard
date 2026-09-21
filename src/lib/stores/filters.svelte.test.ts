@@ -18,7 +18,7 @@ function makeModel(name: string, overrides: Partial<ModelMeta> = {}): ModelMeta 
 		totalParamsB: 1,
 		embeddingDim: 768,
 		maxTokens: 512,
-		modelType: 'dense',
+		modelType: 'language-model',
 		instructionTuned: false,
 		openWeights: true,
 		sentenceTransformersCompatible: true,
@@ -80,10 +80,10 @@ function fixtureSummary(): BenchmarkSummary {
 		makeTask('T3', 'Classification', { languages: ['eng-Latn'], domains: ['general'] })
 	];
 
-	const a = makeModel('org/A', { modelType: 'dense', openWeights: true });
-	const b = makeModel('org/B', { modelType: 'sparse', openWeights: true });
-	const c = makeModel('org/C', { modelType: 'dense', openWeights: false }); // proprietary
-	const d = makeModel('org/D', { modelType: 'dense', openWeights: true, zeroShotPct: -1 });
+	const a = makeModel('org/A', { modelType: 'language-model', openWeights: true });
+	const b = makeModel('org/B', { modelType: 'classifier', openWeights: true });
+	const c = makeModel('org/C', { modelType: 'language-model', openWeights: false }); // proprietary
+	const d = makeModel('org/D', { modelType: 'language-model', openWeights: true, zeroShotPct: -1 });
 
 	const rows: SummaryRow[] = [
 		makeRow(1, a, { T1: 0.9, T2: 0.5, T3: 0.6 }, { Retrieval: 0.7, Classification: 0.6 }),
@@ -177,7 +177,7 @@ describe('applyFilters: model-row narrowing', () => {
 	});
 
 	it('model-type chips intersect on .modelType', () => {
-		filters.setAll('modelTypes', ['sparse'], true);
+		filters.setAll('modelTypes', ['classifier'], true);
 		const out = applyFilters(fixtureSummary());
 		expect(out.rows.map((r) => r.model.name)).toEqual(['org/B']);
 	});

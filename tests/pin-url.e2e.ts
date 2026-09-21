@@ -4,7 +4,7 @@ import type { Locator, Page } from '@playwright/test';
 // `pinnedModels` round-trip through `?pin=`. Regression guard for the
 // single remaining `string`-value caller of `updateUrl`.
 
-const BENCH_SLUG = encodeURIComponent('MTEB(eng, v2)');
+const BENCH_SLUG = encodeURIComponent('DecisionBench');
 
 // Benchmark detail pre-mounts the per-task / per-language panes (`data-prepaint`)
 // so first-tab-click is instant. All three tables key off the same pinned set,
@@ -76,7 +76,7 @@ test.describe('?pin= URL roundtrip on /benchmark/[name]', () => {
 		const url = await currentUrl(page);
 		// `encodeSet`+`URLSearchParams.set`+`.get` cancels out to "a,b".
 		const raw = url.searchParams.get('pin') ?? '';
-		expect(raw.split(',').sort()).toEqual([name0, name1].sort());
+		expect(raw.split(',').map(decodeURIComponent).sort()).toEqual([name0, name1].sort());
 
 		await page.goto(url.toString());
 		await waitForRows(page);

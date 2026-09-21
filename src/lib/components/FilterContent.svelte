@@ -17,7 +17,6 @@
 	import ModalityIcon from './ModalityIcon.svelte';
 	import RangeSlider from './RangeSlider.svelte';
 	import Segmented from './Segmented.svelte';
-	import Switch from './Switch.svelte';
 	import { clampTooltipX } from '$lib/cell-hover';
 	import { humanizeType } from '$lib/format';
 	import { OPENNESS_FILTERABLE } from '$lib/openness';
@@ -207,13 +206,6 @@
 				label:
 					filters.instructions === 'only_instruction' ? 'Instruction-tuned' : 'Non-instruction',
 				clear: () => (filters.instructions = 'both')
-			});
-		}
-		if (filters.sentenceTransformersOnly) {
-			list.push({
-				key: 'st',
-				label: 'ST compatible',
-				clear: () => (filters.sentenceTransformersOnly = false)
 			});
 		}
 		if (filters.opennessReqs.size > 0) {
@@ -430,14 +422,6 @@
 				options={INSTRUCTION_OPTS}
 				value={filters.instructions}
 				onChange={(v) => (filters.instructions = v)}
-			/>
-		</div>
-
-		<div class="group">
-			<Switch
-				label="Sentence-Transformers compatible"
-				checked={filters.sentenceTransformersOnly}
-				onChange={(v) => (filters.sentenceTransformersOnly = v)}
 			/>
 		</div>
 

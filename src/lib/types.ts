@@ -113,7 +113,16 @@ export function flattenMenu(entries: readonly MenuEntry[]): Benchmark[] {
 	return out;
 }
 
-export type ModelType = 'dense' | 'cross-encoder' | 'late-interaction' | 'sparse' | 'router';
+export type ModelType =
+	| 'decision-model'
+	| 'language-model'
+	| 'classifier'
+	| 'api'
+	// Retained for compatibility with upstream MTEB fixtures and imported records.
+	| 'dense'
+	| 'sparse'
+	| 'late-interaction'
+	| 'cross-encoder';
 
 export interface ModelMeta {
 	name: string;

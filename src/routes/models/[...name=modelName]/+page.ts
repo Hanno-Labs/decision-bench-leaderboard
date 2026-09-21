@@ -9,6 +9,7 @@ import type { ModelMeta } from '$lib/types';
 export const prerender = !process.env.BUILD_NO_PRERENDER;
 
 export const entries: EntryGenerator = async () => {
+	if (process.env.BUILD_NO_PRERENDER) return [];
 	const models = await loadModels();
 	return models.map((m) => ({ name: m.name }));
 };

@@ -557,8 +557,7 @@
 	};
 	// Model attributes — architectural facts that don't depend on the benchmark.
 	// (Zero-shot is benchmark-specific, so it lives in the per-benchmark section;
-	// openness has its own section below.) No winner highlighting here — "best"
-	// is not meaningful for attributes like embedding dim.
+	// openness has its own section below.)
 	const metrics: Metric[] = [
 		{
 			key: 'params',
@@ -566,20 +565,6 @@
 			dir: 'min',
 			valueOf: (r) => r.totalParamsB || null,
 			format: (r) => fmtParamsValue(r.totalParamsB) + fmtParamsUnit(r.totalParamsB)
-		},
-		{
-			key: 'embed',
-			label: 'Embedding dimension',
-			dir: 'max',
-			valueOf: (r) => r.embeddingDim || null,
-			format: (r) => (r.embeddingDim ? r.embeddingDim.toLocaleString() : '—')
-		},
-		{
-			key: 'tokens',
-			label: 'Max tokens',
-			dir: 'max',
-			valueOf: (r) => r.maxTokens || null,
-			format: (r) => (r.maxTokens ? r.maxTokens.toLocaleString() : '—')
 		}
 	];
 
@@ -734,7 +719,7 @@
 
 <ShareMeta
 	title="Compare models"
-	description="Side-by-side metric cards plus a radar chart for up to four embedding models on any MTEB benchmark — per-metric winners highlighted, deep-linkable via ?model=… &benchmark=…"
+	description="Compare up to four decision models across DecisionBench, its decision primitives, application families, and domains."
 />
 
 <svelte:window onclick={onDocClick} onkeydown={onKey} />
@@ -897,7 +882,7 @@
 						</span>
 					{/each}
 
-					{#if picked.length < MAX_PICKED}
+					{#if picked.length < MAX_PICKED && picked.length < primarySummary.rows.length}
 						<div class="picker" bind:this={pickerRoot}>
 							<button
 								type="button"

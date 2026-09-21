@@ -3,7 +3,7 @@ import { loadModels } from '$lib/data/service';
 import type { ModelMeta } from '$lib/types';
 
 // Prerendered so ShareMeta lands in static HTML.
-export const prerender = true;
+export const prerender = !process.env.BUILD_NO_PRERENDER;
 
 export interface ModelsData {
 	models: ModelMeta[];

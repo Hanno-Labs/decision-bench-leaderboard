@@ -1,4 +1,10 @@
 node_modules
+.cache/
+.tmp/
+readback/
+results/
+runtime/
+seed/
 
 # Output
 .output

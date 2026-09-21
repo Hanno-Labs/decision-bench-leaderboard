@@ -14,7 +14,7 @@
 	import ShareUrlButton from '$lib/components/ShareUrlButton.svelte';
 	import SkeletonTable from '$lib/components/SkeletonTable.svelte';
 	import { sanitizeFilename, type CsvCell } from '$lib/csv';
-	import { COLLATOR, fmtInt, fmtParamsUnit, fmtParamsValue, modelPath, slug } from '$lib/format';
+	import { COLLATOR, fmtParamsUnit, fmtParamsValue, modelPath, slug } from '$lib/format';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -125,8 +125,7 @@
 
 <ShareMeta
 	title={model.displayName}
-	description={`${model.modelType} embedding model · ${fmtParamsValue(model.totalParamsB)}${fmtParamsUnit(model.totalParamsB)} params · ${model.embeddingDim || '—'}-dim · ${model.maxTokens || '—'} max tokens${model.openWeights ? ' · open weights' : ''}`}
-	entity={{ kind: 'model', name: modelName }}
+	description={`${model.modelType} decision model · ${fmtParamsValue(model.totalParamsB)}${fmtParamsUnit(model.totalParamsB)} params${model.openWeights ? ' · open weights' : ' · proprietary'}`}
 />
 
 <main id="main-content" tabindex="-1" class="page">
@@ -149,9 +148,6 @@
 				</span>
 				{#if model.instructionTuned}
 					<span class="badge soft">Instruction-tuned</span>
-				{/if}
-				{#if model.sentenceTransformersCompatible}
-					<span class="badge soft">ST compatible</span>
 				{/if}
 				{#each sortModalities(model.modalities) as mod (mod)}
 					<span class="badge modality-tint" data-modality={mod} title={mod}>
@@ -371,12 +367,12 @@
 					>
 				</div>
 				<div class="kpi">
-					<span class="kpi-label">Embedding dim</span>
-					<span class="kpi-value">{fmtInt(model.embeddingDim)}</span>
+					<span class="kpi-label">Model type</span>
+					<span class="kpi-value">{model.modelType}</span>
 				</div>
 				<div class="kpi">
-					<span class="kpi-label">Max tokens</span>
-					<span class="kpi-value">{fmtInt(model.maxTokens)}</span>
+					<span class="kpi-label">Weights</span>
+					<span class="kpi-value">{model.openWeights ? 'Open' : 'Proprietary'}</span>
 				</div>
 				<div class="kpi">
 					<span class="kpi-label">Memory</span>

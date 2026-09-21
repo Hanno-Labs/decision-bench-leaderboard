@@ -1,4 +1,3 @@
-import { PUBLIC_API_URL } from '$env/static/public';
 import type { ModelMeta } from './types';
 
 /**
@@ -40,17 +39,11 @@ export function sortModalities<T extends string>(mods: readonly T[] | undefined)
 }
 
 /**
- * Resolve an API-relative URL (one starting with "/") against PUBLIC_API_URL.
- * Absolute URLs and empty/null inputs pass through unchanged. Used so the
- * backend can serve cache-friendly proxy paths (e.g. /v1/icon/<name>) without
- * the frontend having to know the API origin at every consumer.
+ * Preserve absolute and static-site-relative asset URLs.
  */
 export function apiUrl(path: string | null | undefined): string | undefined {
 	if (!path) return undefined;
-	if (/^https?:\/\//i.test(path)) return path;
-	const base = PUBLIC_API_URL?.trim().replace(/\/$/, '') ?? '';
-	if (!base) return path; // offline build — return as-is, will 404 but harmlessly
-	return `${base}${path.startsWith('/') ? path : '/' + path}`;
+	return path;
 }
 
 /**

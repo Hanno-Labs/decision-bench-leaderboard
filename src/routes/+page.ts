@@ -4,7 +4,7 @@ import type { PageLoad } from './$types';
 import { flattenMenu, type Benchmark, type BenchmarkLeaders } from '$lib/types';
 import { loadBenchmark, loadBenchmarkMenu, loadLeaders } from '$lib/data/service';
 
-type TintKey = 'multilingual' | 'retrieval' | 'english';
+type TintKey = 'overall' | 'choice' | 'score';
 export interface Primary {
 	key: TintKey;
 	label: string;
@@ -12,17 +12,26 @@ export interface Primary {
 }
 
 const PRIMARIES: readonly Primary[] = [
-	{ key: 'multilingual', label: 'General', preferred: 'MTEB(Multilingual, v2)' },
-	{ key: 'retrieval', label: 'Retrieval', preferred: 'RTEB(beta)' },
-	{ key: 'english', label: 'General', preferred: 'MTEB(eng, v2)' }
+	{ key: 'overall', label: 'Full benchmark', preferred: 'DecisionBench' },
+	{
+		key: 'choice',
+		label: 'Choice',
+		preferred: 'DecisionBench / Primitive / Choice'
+	},
+	{
+		key: 'score',
+		label: 'Ordered score',
+		preferred: 'DecisionBench / Primitive / Ordered Score'
+	}
 ];
 
-// Size buckets in millions of params; `null` = open-ended top bucket.
+// The MTEB tile contract accepts four buckets. DecisionBench uses those
+// positions for the top four reviewed models and renders their scores.
 const SIZE_BUCKETS: ReadonlyArray<readonly [number, number | null]> = [
-	[0, 500],
-	[500, 1000],
-	[1000, 5000],
-	[5000, null]
+	[0, 1],
+	[1, 2],
+	[2, 3],
+	[3, 4]
 ];
 
 export type LeadersResult = BenchmarkLeaders | { error: string };

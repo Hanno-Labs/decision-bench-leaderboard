@@ -8,12 +8,6 @@ export interface PlotSpec {
 	layout: Partial<Layout>;
 }
 
-function paramSizeForBubble(embeddingDim: number): number {
-	// sqrt(dim) clipped at sqrt(4096), then scaled into Plotly's diameter sizing.
-	const clipped = Math.min(embeddingDim || 0, 4096);
-	return Math.sqrt(clipped);
-}
-
 export function performanceSizePlot(
 	summary: BenchmarkSummary,
 	pinned: ReadonlySet<string> = new Set()
@@ -29,23 +23,16 @@ export function performanceSizePlot(
 	// clamp to 1 param — they still show up, pinned to the left edge.
 	const x = rows.map((r) => Math.max(r.activeParamsB * 1e9, 1));
 	const y = rows.map((r) => r.meanTask * 100);
-	// `embeddingDim` / `maxTokens` are declared `number` on the TS side but
-	// the backend returns `null` for models whose metadata doesn't pin them
-	// down (mostly proprietary). Coerce here so the bubble/color/hover paths
-	// don't blow up on `null.toLocaleString()` etc.
-	const sizes = rows.map((r) => paramSizeForBubble(r.embeddingDim ?? 0));
-	const colors = rows.map((r) => Math.log10(Math.max(r.maxTokens ?? 1, 1)));
+	const colors = rows.map((r) => (r.model.openWeights ? '#0f766e' : '#64748b'));
 	const text = rows.map((r) => r.model.displayName);
 	const isPinned = rows.map((r) => pinned.has(r.model.name));
 	const customdata = rows.map((r, i) => [
-		r.maxTokens != null ? r.maxTokens.toLocaleString() : '—',
-		r.embeddingDim != null ? r.embeddingDim.toLocaleString() : '—',
 		x[i].toLocaleString(),
 		r.totalParamsB != null ? (r.totalParamsB * 1e9).toLocaleString() : '—',
-		r.rank
+		r.rank,
+		r.model.openWeights ? 'Open weights' : 'Proprietary'
 	]);
 
-	const maxSizeRef = Math.sqrt(4096) / 40; // matches original: desired max diameter = 40px
 	const PIN = '#ff6f3c';
 
 	const trace: Data = {
@@ -55,36 +42,13 @@ export function performanceSizePlot(
 		mode: 'markers',
 		type: 'scatter',
 		hovertemplate:
-			'<b>%{text}</b><br>Mean(Task): %{y:.2f}<br>Active parameters: %{customdata[2]}<br>' +
-			'Total parameters: %{customdata[3]}<br>' +
-			'Max tokens: %{customdata[0]}<br>Embedding dim: %{customdata[1]}<br>' +
-			'Rank: %{customdata[4]}<extra></extra>',
+			'<b>%{text}</b><br>Mean task score: %{y:.2f}<br>Active parameters: %{customdata[0]}<br>' +
+			'Total parameters: %{customdata[1]}<br>Rank: %{customdata[2]}<br>' +
+			'%{customdata[3]}<extra></extra>',
 		customdata,
 		marker: {
-			size: sizes,
-			sizemode: 'diameter',
-			sizeref: maxSizeRef,
-			sizemin: 4,
+			size: 16,
 			color: colors,
-			colorscale: 'Greens',
-			cmin: 2,
-			cmax: 5,
-			showscale: true,
-			colorbar: {
-				// Font color is inherited from the layout `font.color` that
-				// PlotlyChart sets per-theme — no need to hardcode it here.
-				title: { text: 'Max Tokens', font: { size: 11 } },
-				tickvals: [2, 3, 4, 5],
-				ticktext: ['100', '1K', '10K', '100K'],
-				tickfont: { size: 11 },
-				outlinewidth: 0,
-				bordercolor: 'rgba(0,0,0,0)',
-				borderwidth: 0,
-				thickness: 12,
-				ticks: 'outside',
-				ticklen: 3,
-				tickcolor: 'rgba(0,0,0,0)'
-			},
 			line: {
 				width: isPinned.map((p) => (p ? 3 : 0.5)),
 				color: isPinned.map((p) => (p ? PIN : 'rgba(31,35,41,0.35)'))

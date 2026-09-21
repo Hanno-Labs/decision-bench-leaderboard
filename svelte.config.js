@@ -52,11 +52,8 @@ const config = {
 			// present after hydration, so we downgrade the build error to a warning
 			// instead of failing prerender.
 			handleMissingId: 'warn',
-			// The GitHub Pages build lives at `embeddings-benchmark.github.io/leaderboard-frontend`
-			// — same origin as the sibling mteb docs site at `embeddings-benchmark.github.io/mteb/`,
-			// which the top-bar links to. SvelteKit's crawler treats those same-origin URLs
-			// as internal, strips the origin, then crashes because `/mteb/` doesn't start with
-			// `paths.base`. Anything outside our base is a sibling site — log and skip.
+			// GitHub Pages builds live under a repository base path. Treat links outside
+			// that base as external rather than failing the static build.
 			handleHttpError: ({ status, path, referrer, message }) => {
 				const base = process.env.BASE_PATH || '';
 				if (base && !path.startsWith(base)) {
@@ -81,7 +78,8 @@ const config = {
 			// Override per build with `PUBLIC_SITE_URL=…` (e.g. for staging
 			// or a fork). Without this, SvelteKit substitutes its placeholder
 			// `http://sveltekit-prerender`, which 404s in every crawler.
-			origin: process.env.PUBLIC_SITE_URL || 'https://mteb-leaderboardv3.hf.space'
+			origin:
+				process.env.PUBLIC_SITE_URL || 'https://hanno-labs-decision-bench-leaderboard.hf.space'
 		},
 		version: {
 			// Embedded in the build. SvelteKit checks `_app/version.json` at the

@@ -20,7 +20,6 @@
 	import {
 		ariaSort,
 		COLLATOR,
-		fmtInt,
 		fmtParamsCompact,
 		modelPath,
 		modelSearchKey,
@@ -67,8 +66,6 @@
 		{ id: 'name', label: 'Name' },
 		{ id: 'type', label: 'Type' },
 		{ id: 'params', label: 'Parameters' },
-		{ id: 'embedDim', label: 'Embed dim' },
-		{ id: 'maxTokens', label: 'Max tokens' },
 		{ id: 'released', label: 'Release date' },
 		{ id: 'openness', label: 'Openness' }
 	] as const;
@@ -81,8 +78,6 @@
 		name: 'asc',
 		type: 'asc',
 		params: 'desc',
-		embedDim: 'desc',
-		maxTokens: 'desc',
 		released: 'desc',
 		openness: 'desc'
 	};
@@ -168,7 +163,6 @@
 		const q = filters.nameQuery.trim().toLowerCase();
 		const availability = filters.availability;
 		const instructions = filters.instructions;
-		const stOnly = filters.sentenceTransformersOnly;
 		const opennessReqs = filters.opennessReqs;
 		const opennessActive = opennessReqs.size > 0;
 		const modelTypes = filters.modelTypes;
@@ -188,7 +182,6 @@
 			if (availability === 'proprietary' && m.openWeights) return false;
 			if (instructions === 'only_instruction' && !m.instructionTuned) return false;
 			if (instructions === 'only_non_instruction' && m.instructionTuned) return false;
-			if (stOnly && !m.sentenceTransformersCompatible) return false;
 			if (opennessActive && !opennessMeets(m, opennessReqs)) return false;
 			// Empty pick set = "deselect everything" → nothing matches.
 			if (modelTypesSize === 0 || !modelTypes.has(m.modelType)) return false;
@@ -238,10 +231,6 @@
 				const aP = a.totalParamsB || -1;
 				const bP = b.totalParamsB || -1;
 				cmp = aP - bP;
-			} else if (sort === 'embedDim') {
-				cmp = (a.embeddingDim ?? -1) - (b.embeddingDim ?? -1);
-			} else if (sort === 'maxTokens') {
-				cmp = (a.maxTokens ?? -1) - (b.maxTokens ?? -1);
 			} else if (sort === 'released') {
 				cmp = COLLATOR.compare(a.releaseDate ?? '', b.releaseDate ?? '');
 			} else if (sort === 'openness') {
@@ -293,7 +282,7 @@
 
 <ShareMeta
 	title="Models"
-	description={`Every embedding model on the MTEB Leaderboard — ${ALL_MODELS.length || '700+'} models with architecture type, parameter count, embedding dimension, context length, release date, and supported languages.`}
+	description={`Every decision model with reviewed DecisionBench results — ${ALL_MODELS.length || '0'} models with architecture, openness, release date, and supported languages.`}
 />
 
 <div class="layout-sidebar">
@@ -301,21 +290,15 @@
 		<header class="hero index-hero">
 			<h1>Models</h1>
 			<p class="lead">
-				Every model in the leaderboard with its architecture type, parameter count, embedding
-				dimension, max context, and release date. Filters here share state with the leaderboard on
-				every benchmark detail page.
+				Every model in the leaderboard with its architecture, parameter count, openness, and release
+				date. Filters here share state with every benchmark view.
 			</p>
 			<p class="contribute-note">
-				To add your model, follow our
+				To add a model or submit scores, follow the
 				<a
-					href="https://embeddings-benchmark.github.io/mteb/contributing/adding_a_model/"
+					href="https://github.com/Hanno-Labs/decision-bench/blob/main/docs/submitting-results.md"
 					target="_blank"
-					rel="noreferrer">contributor guide</a
-				>. Already have scores? Read the
-				<a
-					href="https://embeddings-benchmark.github.io/mteb/contributing/submitting_results/"
-					target="_blank"
-					rel="noreferrer">submitting results guide</a
+					rel="noreferrer">submission guide</a
 				>.
 			</p>
 		</header>
@@ -385,12 +368,12 @@
 								<dd>{fmtParamsCompact(m.totalParamsB)}</dd>
 							</div>
 							<div>
-								<dt>Embed dim</dt>
-								<dd>{fmtInt(m.embeddingDim)}</dd>
+								<dt>Type</dt>
+								<dd>{m.modelType}</dd>
 							</div>
 							<div>
-								<dt>Max tokens</dt>
-								<dd>{fmtInt(m.maxTokens)}</dd>
+								<dt>Weights</dt>
+								<dd>{m.openWeights ? 'Open' : 'Proprietary'}</dd>
 							</div>
 							<div>
 								<dt>Openness</dt>
@@ -409,9 +392,6 @@
 							</span>
 							{#if m.instructionTuned}
 								<span class="badge soft">Instruction-tuned</span>
-							{/if}
-							{#if m.sentenceTransformersCompatible}
-								<span class="badge soft">ST compatible</span>
 							{/if}
 							{#if languageSummary}
 								<span

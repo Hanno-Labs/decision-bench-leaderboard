@@ -2,7 +2,6 @@
 	import { resolve } from '$app/paths';
 	import type { ModelMeta } from '$lib/types';
 	import {
-		fmtInt,
 		fmtParamsUnit,
 		fmtParamsValue,
 		modelPath,
@@ -22,7 +21,7 @@
 	import OpennessMeter from './OpennessMeter.svelte';
 	import SortHeader from './SortHeader.svelte';
 
-	type SortId = 'name' | 'params' | 'embedDim' | 'maxTokens' | 'released' | 'type' | 'openness';
+	type SortId = 'name' | 'params' | 'released' | 'type' | 'openness';
 
 	interface Props {
 		rows: ModelMeta[];
@@ -117,38 +116,6 @@
 						</SortHeader>
 					</th>
 				{/if}
-				<th
-					class="tbl-num tbl-col-num"
-					data-tip-title={COLUMN_INFO.embedding.title}
-					data-tip={COLUMN_INFO.embedding.text}
-					onpointerenter={showTip}
-					onpointerleave={hideTip}
-					onfocusin={showTip}
-					onfocusout={hideTip}
-					aria-sort={sort.aria('embedDim')}
-				>
-					<SortHeader {sort} field="embedDim" label="Embed dim" infoAfter>
-						{#snippet info()}
-							<InfoDot ariaLabel="What is {COLUMN_INFO.embedding.title}?" />
-						{/snippet}
-					</SortHeader>
-				</th>
-				<th
-					class="tbl-num tbl-col-num"
-					data-tip-title={COLUMN_INFO.maxTokens.title}
-					data-tip={COLUMN_INFO.maxTokens.text}
-					onpointerenter={showTip}
-					onpointerleave={hideTip}
-					onfocusin={showTip}
-					onfocusout={hideTip}
-					aria-sort={sort.aria('maxTokens')}
-				>
-					<SortHeader {sort} field="maxTokens" label="Max tokens" infoAfter>
-						{#snippet info()}
-							<InfoDot ariaLabel="What is {COLUMN_INFO.maxTokens.title}?" />
-						{/snippet}
-					</SortHeader>
-				</th>
 				<th class="tbl-num tbl-col-num" aria-sort={sort.aria('released')}>
 					<SortHeader {sort} field="released" label="Released" />
 				</th>
@@ -206,8 +173,6 @@
 							{/if}
 						</td>
 					{/if}
-					<td class="tbl-num tbl-col-num">{fmtInt(m.embeddingDim)}</td>
-					<td class="tbl-num tbl-col-num">{fmtInt(m.maxTokens)}</td>
 					<td class="tbl-num tbl-col-num">{m.releaseDate ?? '—'}</td>
 					<td class="tbl-col-chips">
 						<div class="tbl-chips">
@@ -230,7 +195,7 @@
 	</table>
 </div>
 
-<!-- Column-header tips — Parameters / Openness / Embed dim / Max tokens, each
+<!-- Column-header tips — Parameters and Openness, each
      supplying its copy via `data-tip` from the shared `COLUMN_INFO`. -->
 <HoverPortal visible={tipState.visible} title={tipState.title} x={tipState.x} y={tipState.y}>
 	{tipState.text}

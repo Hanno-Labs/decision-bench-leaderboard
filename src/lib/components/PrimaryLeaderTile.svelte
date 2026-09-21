@@ -3,7 +3,7 @@
 	import type { Benchmark, BenchmarkLeaders } from '$lib/types';
 	import { apiUrl, isIconUrl, slug, splitModelName } from '$lib/format';
 
-	type TintKey = 'multilingual' | 'retrieval' | 'english';
+	type TintKey = 'overall' | 'choice' | 'score';
 
 	// `undefined` = loading.
 	type LeadersResult = BenchmarkLeaders | { error: string };
@@ -19,20 +19,10 @@
 		leaders !== undefined && !('error' in leaders) ? leaders : undefined
 	);
 
-	function fmtParams(m: number): string {
-		if (m >= 1000) {
-			const b = m / 1000;
-			return `${Number.isInteger(b) ? b : b.toFixed(1)}B`;
-		}
-		return `${Math.round(m)}M`;
+	function scoreLabel(score: number | null): string {
+		return score == null ? '—' : `${(score * 100).toFixed(2)}%`;
 	}
-	function bucketLabel(min: number, max: number | null): string {
-		if (min === 0 && max != null) return `<${fmtParams(max)}`;
-		if (max == null) return `>${fmtParams(min)}`;
-		return `${fmtParams(min)}–${fmtParams(max)}`;
-	}
-	// Reverse to biggest-first.
-	let orderedBuckets = $derived(leadersData ? [...leadersData.buckets].reverse() : []);
+	let orderedBuckets = $derived(leadersData ? [...leadersData.buckets] : []);
 </script>
 
 <a
@@ -70,7 +60,7 @@
 		<div class="prim-grid" aria-busy="true" aria-label="Loading leaders">
 			<div class="prim-row prim-head-row">
 				<span>Top Models</span>
-				<span>Size group</span>
+				<span>Score</span>
 			</div>
 			{#each [0, 1, 2, 3] as i (i)}
 				<div class="prim-row">
@@ -82,19 +72,19 @@
 	{:else if leadersErrored}
 		<div class="prim-state error">Couldn't load.</div>
 	{:else if orderedBuckets.every((bk) => !bk.leader)}
-		<div class="prim-state">No size-bucketed data yet.</div>
+		<div class="prim-state">No reviewed results yet.</div>
 	{:else}
 		<div class="prim-grid">
 			<div class="prim-row prim-head-row">
 				<span>Top Models</span>
-				<span>Size group</span>
+				<span>Score</span>
 			</div>
 			{#each orderedBuckets as bk (`${bk.min}-${bk.max ?? 'inf'}`)}
 				{@const r = bk.leader}
 				{#if r}
 					<div class="prim-row">
 						<span class="prim-model">{splitModelName(r.model.name).displayName}</span>
-						<span class="prim-size">{bucketLabel(bk.min, bk.max)}</span>
+						<span class="prim-size">{scoreLabel(r.meanTask)}</span>
 					</div>
 				{/if}
 			{/each}
@@ -114,7 +104,7 @@
 	.prim:hover .prim-title-text {
 		color: var(--tint-fg);
 	}
-	.prim[data-key='retrieval'] {
+	.prim[data-key='choice'] {
 		--tint: var(--tint-purple);
 		--tint-fg: var(--tint-purple-fg);
 	}
@@ -122,7 +112,7 @@
 	   "general" benchmarks, and the original green was reading like a
 	   different category rather than a different scope. The data-key
 	   stays on the element for future per-tile overrides. */
-	.prim[data-key='english'] {
+	.prim[data-key='score'] {
 		--tint: var(--tint-blue);
 		--tint-fg: var(--tint-blue-fg);
 	}

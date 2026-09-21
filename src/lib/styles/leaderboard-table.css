@@ -322,19 +322,16 @@
    name in the row cell picks it up via the shared paint rule below, and
    HoverPortal / ModelHoverPortal use the same property for their title
    + Type-row value. */
-[data-model-type='dense'] {
+[data-model-type='decision-model'] {
 	--type-tint: var(--tint-blue-fg);
 }
-[data-model-type='cross-encoder'] {
+[data-model-type='language-model'] {
 	--type-tint: var(--tint-orange-fg);
 }
-[data-model-type='late-interaction'] {
+[data-model-type='classifier'] {
 	--type-tint: var(--tint-green-fg);
 }
-[data-model-type='sparse'] {
-	--type-tint: var(--tint-amber-fg);
-}
-[data-model-type='router'] {
+[data-model-type='api'] {
 	--type-tint: var(--tint-purple-fg);
 }
 [data-model-type] .tbl-model-name {

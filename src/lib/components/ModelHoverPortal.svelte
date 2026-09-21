@@ -2,11 +2,6 @@
 	import type { SummaryRow } from '$lib/types';
 	import { fmtZeroShot, fmtParamsCompact } from '$lib/format';
 
-	function fmtInt(n: number): string {
-		if (!n) return '—';
-		return n.toLocaleString();
-	}
-
 	// Shared hover-row set for SummaryTable, PerTaskTab, PerLanguageTab.
 	// Org goes in the title (`<org> / <displayName>`), not a separate row.
 	// Memoised by row identity: a hover storm over the same 5–10 cells
@@ -20,8 +15,7 @@
 			{ k: 'Type', v: m.modelType },
 			{ k: 'Active params', v: fmtParamsCompact(row.activeParamsB, ' ') },
 			{ k: 'Zero-shot', v: fmtZeroShot(row.zeroShotPct) },
-			{ k: 'Embedding dim', v: row.embeddingDim ? fmtInt(row.embeddingDim) : '—' },
-			{ k: 'Max tokens', v: row.maxTokens ? fmtInt(row.maxTokens) : '—' },
+			{ k: 'Weights', v: m.openWeights ? 'Open' : 'Proprietary' },
 			{ k: 'Released', v: m.releaseDate ?? '—' }
 		];
 		_rowsCache.set(row, out);

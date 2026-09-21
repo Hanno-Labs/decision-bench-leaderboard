@@ -314,8 +314,7 @@
 	title={benchmark?.displayName ?? benchmarkName}
 	description={benchmark?.description
 		? `${benchmark.tasks.length} tasks, ${benchmark.languages.length} languages, ${filteredSummary?.rows.length ?? '—'} models — ${benchmark.description}`
-		: `Benchmark on the MTEB Leaderboard.`}
-	entity={{ kind: 'benchmark', name: benchmarkName }}
+		: `Benchmark view on the DecisionBench Leaderboard.`}
 	image={benchmark?.icon && isIconUrl(benchmark.icon) ? apiUrl(benchmark.icon) : undefined}
 />
 
