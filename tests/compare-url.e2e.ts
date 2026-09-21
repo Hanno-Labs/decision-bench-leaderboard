@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
 const MAX_PICKED = 3;
-const AVAILABLE_BENCHMARKS = 29;
+const MAX_BENCHMARKS = 6;
 
 async function waitForCompareReady(page: Page) {
 	// Two chips = the page auto-seeded the top 2 models from the primary summary.
@@ -232,12 +232,12 @@ test.describe('/compare benchmark picker', () => {
 		await expect(benchChips(page).first().locator('.pick-x')).toHaveCount(0);
 	});
 
-	test('+Add disappears when every published suite is selected', async ({ page }) => {
+	test('+Add disappears when `MAX_BENCHMARKS` benchmarks are selected', async ({ page }) => {
 		await page.goto('/compare');
 		await waitForCompareReady(page);
 
 		const addBtn = () => page.getByRole('button', { name: /Add benchmark/ });
-		for (let i = 1; i < AVAILABLE_BENCHMARKS; i++) {
+		for (let i = 1; i < MAX_BENCHMARKS; i++) {
 			await addBtn().click();
 			const dialog = page.getByRole('dialog', { name: 'Pick benchmark' });
 			await dialog.locator('.picker-row:not(.on):not([disabled])').first().click();
