@@ -226,6 +226,18 @@ export function fmtPct(score: number | null | undefined): string {
 	return (score * 100).toFixed(2);
 }
 
+/** Expected calibration error as a percentage, including its unit. */
+export function fmtEce(value: number | null | undefined): string {
+	if (value == null) return '—';
+	return `${(value * 100).toFixed(2)}%`;
+}
+
+/** Mean negative log-likelihood in nats. */
+export function fmtNll(value: number | null | undefined): string {
+	if (value == null) return '—';
+	return value.toFixed(3);
+}
+
 /** Real value vs the em-dash / NA placeholder used by ``fmtPct``/``fmtInt``. */
 export function hasValue(s: string): boolean {
 	return s !== '—' && s !== '⚠️ NA';

@@ -3,7 +3,9 @@ import {
 	ariaSort,
 	bestPerColumn,
 	defaultDirFor,
+	fmtEce,
 	fmtInt,
+	fmtNll,
 	fmtParamsUnit,
 	fmtParamsValue,
 	fmtPct,
@@ -158,6 +160,18 @@ describe('fmtPct', () => {
 	it('missing value ⇒ em-dash', () => {
 		expect(fmtPct(null)).toBe('—');
 		expect(fmtPct(undefined)).toBe('—');
+	});
+});
+
+describe('calibration formatting', () => {
+	it('formats ECE as a percentage with its unit', () => {
+		expect(fmtEce(0.04567)).toBe('4.57%');
+		expect(fmtEce(null)).toBe('—');
+	});
+
+	it('formats NLL in nats to three decimals', () => {
+		expect(fmtNll(1.23456)).toBe('1.235');
+		expect(fmtNll(undefined)).toBe('—');
 	});
 });
 

@@ -24,5 +24,13 @@ export const COLUMN_INFO = {
 	maxTokens: {
 		title: 'Max tokens',
 		text: 'How many tokens (word-pieces) the model can process in a single input. Larger is usually better for long-context tasks.'
+	},
+	expectedCalibrationError: {
+		title: 'Expected calibration error (ECE)',
+		text: 'Average gap between confidence and observed accuracy across 15 equal-width confidence bins. Lower is better. Unavailable when a suite excludes views because the aggregate cannot be reconstructed exactly.'
+	},
+	meanNegativeLogLikelihood: {
+		title: 'Negative log-likelihood (NLL)',
+		text: 'Average negative log probability assigned to the gold answer, measured in nats. Lower is better. Aggregate views are weighted by successful rows.'
 	}
 } as const;

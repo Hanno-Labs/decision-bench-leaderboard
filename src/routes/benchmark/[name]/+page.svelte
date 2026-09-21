@@ -224,6 +224,9 @@
 		const showType = aggs.has('mean_task_type');
 		const showPP = aggs.has('public_private');
 		const showTT = aggs.has('task_types');
+		const showCalibration = s.rows.some(
+			(row) => 'expectedCalibrationError' in row || 'meanNegativeLogLikelihood' in row
+		);
 		const publicNames = new Set(s.tasksMeta.filter((t) => t.isPublic !== false).map((t) => t.name));
 		const privateNames = new Set(
 			s.tasksMeta.filter((t) => t.isPublic === false).map((t) => t.name)
@@ -262,6 +265,7 @@
 			...(showTask ? ['Mean (Task)'] : []),
 			...(showType ? ['Mean (TaskType)'] : []),
 			...(showPP ? ['Mean (Public)', 'Mean (Private)'] : []),
+			...(showCalibration ? ['ECE (%)', 'NLL'] : []),
 			...(showTT ? s.taskTypes : [])
 		];
 		const pct = (v: number | null | undefined) => (v == null ? null : (v * 100).toFixed(2));
@@ -292,6 +296,9 @@
 				...(showTask ? [pct(row.meanTask)] : []),
 				...(showType ? [pct(row.meanTaskType)] : []),
 				...(showPP ? [pct(meanOver(row, publicNames)), pct(meanOver(row, privateNames))] : []),
+				...(showCalibration
+					? [pct(row.expectedCalibrationError), row.meanNegativeLogLikelihood?.toFixed(6) ?? null]
+					: []),
 				...(showTT ? s.taskTypes.map((tt) => pct(row.scoresByTaskType[tt])) : [])
 			];
 		});

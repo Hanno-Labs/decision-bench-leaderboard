@@ -296,6 +296,10 @@ test.describe('/compare figure + benchmark table rendering', () => {
 		await expect(page.locator('.figure-card')).toBeVisible({ timeout: 15_000 });
 		await expect(page.locator('.figure-card svg').first()).toBeVisible({ timeout: 15_000 });
 		await expect(page.locator('.bench-rv')).toHaveCount(2);
+		await expect(page.locator('.bench-rv .cal-sub')).toHaveCount(2);
+		for (const text of await page.locator('.bench-rv .cal-sub').allTextContents()) {
+			expect(text).toMatch(/^ECE (?:\d+\.\d{2}%|—) · NLL (?:\d+\.\d{3}|—)$/);
+		}
 	});
 
 	test('benchmark table grows when a second benchmark is added', async ({ page }) => {

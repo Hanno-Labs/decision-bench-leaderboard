@@ -707,6 +707,10 @@ export function applyFilters(summary: BenchmarkSummary): BenchmarkSummary {
 				...row,
 				meanTask: agg.meanTask,
 				meanTaskType: agg.meanTaskType,
+				// Calibration cannot be reconstructed from per-task means. Never
+				// show the unfiltered suite value beside a filtered accuracy view.
+				expectedCalibrationError: null,
+				meanNegativeLogLikelihood: null,
 				scoresByTaskType: agg.scoresByTaskType
 			});
 		}

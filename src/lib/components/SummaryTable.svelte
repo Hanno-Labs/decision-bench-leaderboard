@@ -124,6 +124,8 @@
 		floatPinnedToTop,
 		fmtParamsUnit,
 		fmtParamsValue,
+		fmtEce,
+		fmtNll,
 		fmtPct,
 		fmtZeroShot,
 		heat,
@@ -168,6 +170,8 @@
 		| 'meanTaskType'
 		| 'meanPublic'
 		| 'meanPrivate'
+		| 'ece'
+		| 'nll'
 		| `tt:${string}`;
 
 	// Per-summary-tab sort. URL prefix `s.summary` / `d.summary` keeps
@@ -176,7 +180,7 @@
 	// active sort.
 	const sort = createSortState<SortKey>({
 		urlKeys: ['s.summary', 'd.summary'],
-		ascKeys: ['rank', 'model'],
+		ascKeys: ['rank', 'model', 'ece', 'nll'],
 		defaultIcon: '↕'
 	});
 
@@ -208,6 +212,16 @@
 				const v = privateMeansByRow.get(row) ?? null;
 				return { v: v ?? 0, missing: v == null };
 			}
+			case 'ece':
+				return {
+					v: row.expectedCalibrationError ?? 0,
+					missing: row.expectedCalibrationError == null
+				};
+			case 'nll':
+				return {
+					v: row.meanNegativeLogLikelihood ?? 0,
+					missing: row.meanNegativeLogLikelihood == null
+				};
 		}
 		if (key.startsWith('tt:')) {
 			const tt = key.slice(3);
@@ -364,6 +378,9 @@
 	let showMeanTaskType = $derived(summary.aggregations?.includes('mean_task_type') ?? false);
 	let showTaskTypes = $derived(summary.aggregations?.includes('task_types') ?? false);
 	let showPublicPrivate = $derived(summary.aggregations?.includes('public_private') ?? false);
+	let showCalibration = $derived(
+		summary.rows.some((r) => 'expectedCalibrationError' in r || 'meanNegativeLogLikelihood' in r)
+	);
 	// ViDoRe / RTEB don't track training-data overlap for their tasks, so
 	// every row would render as a misleading uniform 100% — hide the column.
 	let showZeroShot = $derived(summary.showZeroShot ?? true);
@@ -712,6 +729,42 @@
 							</button>
 						</th>
 					{/if}
+					{#if showCalibration}
+						<th
+							scope="col"
+							class="tbl-num"
+							data-tip-title={INFO.expectedCalibrationError.title}
+							data-tip={INFO.expectedCalibrationError.text}
+							onpointerenter={showTip}
+							onpointerleave={hideTip}
+							onfocusin={showTip}
+							onfocusout={hideTip}
+							aria-sort={sort.aria('ece')}
+						>
+							<button class="sort-btn tbl-num" onclick={() => sort.click('ece')}>
+								<span>ECE</span>
+								<InfoDot ariaLabel="What is {INFO.expectedCalibrationError.title}?" />
+								<span class="ind" class:on={sort.key === 'ece'}>{sort.icon('ece')}</span>
+							</button>
+						</th>
+						<th
+							scope="col"
+							class="tbl-num"
+							data-tip-title={INFO.meanNegativeLogLikelihood.title}
+							data-tip={INFO.meanNegativeLogLikelihood.text}
+							onpointerenter={showTip}
+							onpointerleave={hideTip}
+							onfocusin={showTip}
+							onfocusout={hideTip}
+							aria-sort={sort.aria('nll')}
+						>
+							<button class="sort-btn tbl-num" onclick={() => sort.click('nll')}>
+								<span>NLL</span>
+								<InfoDot ariaLabel="What is {INFO.meanNegativeLogLikelihood.title}?" />
+								<span class="ind" class:on={sort.key === 'nll'}>{sort.icon('nll')}</span>
+							</button>
+						</th>
+					{/if}
 					{#if showTaskTypes}
 						{#each sortedTaskTypes as tt (tt)}
 							{@const k = `tt:${tt}` as SortKey}
@@ -827,6 +880,10 @@
 							>
 								{fmtPct(mpr)}
 							</td>
+						{/if}
+						{#if showCalibration}
+							<td class="tbl-num">{fmtEce(row.expectedCalibrationError)}</td>
+							<td class="tbl-num">{fmtNll(row.meanNegativeLogLikelihood)}</td>
 						{/if}
 						{#if showTaskTypes}
 							{#each sortedTaskTypes as tt (tt)}

@@ -153,6 +153,17 @@ describe('applyFilters: task-set narrowing', () => {
 		expect(a.meanTask).toBeCloseTo(0.7, 5);
 	});
 
+	it('marks suite calibration unavailable after task narrowing', () => {
+		const summary = fixtureSummary();
+		summary.rows[0].expectedCalibrationError = 0.04;
+		summary.rows[0].meanNegativeLogLikelihood = 0.8;
+		filters.setAll('taskTypes', ['Retrieval'], true);
+
+		const row = applyFilters(summary).rows.find((item) => item.model.name === 'org/A');
+		expect(row?.expectedCalibrationError).toBeNull();
+		expect(row?.meanNegativeLogLikelihood).toBeNull();
+	});
+
 	it('does NOT drop tasks by language filter — that is now handled server-side', () => {
 		// The backend re-runs the summary scoped to the picked languages via
 		// `?languages=` on /scores; the client trusts whatever task list the
@@ -166,6 +177,16 @@ describe('applyFilters: task-set narrowing', () => {
 });
 
 describe('applyFilters: model-row narrowing', () => {
+	it('preserves calibration when only model rows are filtered', () => {
+		const summary = fixtureSummary();
+		summary.rows[0].expectedCalibrationError = 0.04;
+		summary.rows[0].meanNegativeLogLikelihood = 0.8;
+		filters.nameQuery = 'org/A';
+
+		const row = applyFilters(summary).rows[0];
+		expect(row.expectedCalibrationError).toBe(0.04);
+		expect(row.meanNegativeLogLikelihood).toBe(0.8);
+	});
 	it('proprietary-only / open-only flip rows in/out', () => {
 		filters.availability = 'open';
 		let out = applyFilters(fixtureSummary());

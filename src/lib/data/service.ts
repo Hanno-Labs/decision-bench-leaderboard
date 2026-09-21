@@ -429,6 +429,8 @@ function summaryFor(
 			maxTokens: null,
 			meanTask: score,
 			meanTaskType: score,
+			expectedCalibrationError: current.expected_calibration_error,
+			meanNegativeLogLikelihood: current.mean_negative_log_likelihood,
 			scoresByTaskType,
 			scoresByTask,
 			trainedOnTasks: [],
@@ -591,6 +593,8 @@ export async function loadTaskScores(name: string, fetchFn?: FetchFn): Promise<T
 			rank: index + 1,
 			model: toModelMeta(row),
 			score: viewScoreOf(row),
+			expectedCalibrationError: row.expected_calibration_error,
+			meanNegativeLogLikelihood: row.mean_negative_log_likelihood,
 			subsetScores: { default: { test: viewScoreOf(row) ?? 0 } },
 			benchmarks: benchmarkNames,
 			trainedOn: null
@@ -648,6 +652,8 @@ export async function loadModelScores(name: string, fetchFn?: FetchFn): Promise<
 			totalModels: summary.rows.length,
 			meanTask: row.meanTask,
 			meanTaskType: row.meanTaskType,
+			expectedCalibrationError: row.expectedCalibrationError,
+			meanNegativeLogLikelihood: row.meanNegativeLogLikelihood,
 			zeroShotPct: 100,
 			taskTypes: summary.taskTypes,
 			scoresByTaskType: row.scoresByTaskType

@@ -9,6 +9,8 @@
 	export interface ModelScore {
 		model: ModelMeta;
 		score: number | null;
+		expectedCalibrationError?: number | null;
+		meanNegativeLogLikelihood?: number | null;
 		rank: number;
 		benchmarkName: string;
 		subsetScores: Record<string, number>;
@@ -27,7 +29,8 @@
 	import InfoDot from './InfoDot.svelte';
 	import ModelCellName from './ModelCellName.svelte';
 	import SortHeader from './SortHeader.svelte';
-	import { fmtPct, heat, maxOf, minOf } from '$lib/format';
+	import { fmtEce, fmtNll, fmtPct, heat, maxOf, minOf } from '$lib/format';
+	import { COLUMN_INFO } from '$lib/column-info';
 
 	// Lightweight column-header tooltip — same shape as FilterContent's.
 	// One trigger today (Zero-shot), but the data-tip / showTip wiring
@@ -59,10 +62,10 @@
 
 	// Subset columns get a `subset:` prefix so the string union stays flat
 	// and serialises to the URL without further encoding.
-	type SortKey = 'rank' | 'model' | 'zeroShot' | 'score' | `subset:${string}`;
+	type SortKey = 'rank' | 'model' | 'zeroShot' | 'score' | 'ece' | 'nll' | `subset:${string}`;
 	const sort = createSortState<SortKey>({
 		urlKeys: ['s.scores', 'd.scores'],
-		ascKeys: ['rank', 'model'],
+		ascKeys: ['rank', 'model', 'ece', 'nll'],
 		defaultIcon: '↕'
 	});
 
@@ -88,6 +91,14 @@
 				if (a.score == null) return 1;
 				if (b.score == null) return -1;
 				return (a.score - b.score) * dir;
+			}
+			if (k === 'ece' || k === 'nll') {
+				const av = k === 'ece' ? a.expectedCalibrationError : a.meanNegativeLogLikelihood;
+				const bv = k === 'ece' ? b.expectedCalibrationError : b.meanNegativeLogLikelihood;
+				if (av == null && bv == null) return 0;
+				if (av == null) return 1;
+				if (bv == null) return -1;
+				return (av - bv) * dir;
 			}
 			const subset = k.slice(7);
 			const av = a.subsetScores[subset];
@@ -155,6 +166,22 @@
 				>
 					<SortHeader {sort} field="score" label="Mean scores" />
 				</th>
+				<th
+					scope="col"
+					class="tbl-num"
+					aria-sort={sort.aria('ece')}
+					title={COLUMN_INFO.expectedCalibrationError.text}
+				>
+					<SortHeader {sort} field="ece" label="ECE" />
+				</th>
+				<th
+					scope="col"
+					class="tbl-num"
+					aria-sort={sort.aria('nll')}
+					title={COLUMN_INFO.meanNegativeLogLikelihood.text}
+				>
+					<SortHeader {sort} field="nll" label="NLL" />
+				</th>
 				{#each subsets as sub (sub)}
 					{@const k = `subset:${sub}` as SortKey}
 					<th scope="col" class="tbl-num sub" aria-sort={sort.aria(k)} title={sub}>
@@ -197,6 +224,8 @@
 						title={s.score == null ? 'Not evaluated on every subset' : undefined}
 						>{fmtPct(s.score)}</td
 					>
+					<td class="tbl-num">{fmtEce(s.expectedCalibrationError)}</td>
+					<td class="tbl-num">{fmtNll(s.meanNegativeLogLikelihood)}</td>
 					{#each subsets as sub (sub)}
 						{@const v = s.subsetScores[sub]}
 						<td

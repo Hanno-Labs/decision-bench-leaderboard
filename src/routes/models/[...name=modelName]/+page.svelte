@@ -59,6 +59,8 @@
 			rank: r.rank,
 			meanTask: r.meanTask,
 			meanTaskType: r.meanTaskType,
+			expectedCalibrationError: r.expectedCalibrationError,
+			meanNegativeLogLikelihood: r.meanNegativeLogLikelihood,
 			zeroShotPct: r.zeroShotPct,
 			totalModels: r.totalModels
 		}));
@@ -101,14 +103,16 @@
 	}
 	function buildCsv() {
 		// Column order mirrors the on-screen `BenchScoreTable`: Benchmark,
-		// Zero-shot, Rank, Total Models, Mean (Task), Mean (TaskType).
+		// Zero-shot, Rank, Total Models, accuracy means, then calibration.
 		const headers = [
 			'Benchmark',
 			'Zero-shot',
 			'Rank',
 			'Total Models',
 			'Mean (Task)',
-			'Mean (TaskType)'
+			'Mean (TaskType)',
+			'ECE (%)',
+			'NLL'
 		];
 		const pct = (v: number | null | undefined) => (v == null ? null : (v * 100).toFixed(2));
 		const rows: CsvCell[][] = rawRows.map((s) => [
@@ -117,7 +121,9 @@
 			s.rank,
 			s.totalModels,
 			pct(s.meanTask),
-			pct(s.meanTaskType)
+			pct(s.meanTaskType),
+			pct(s.expectedCalibrationError),
+			s.meanNegativeLogLikelihood?.toFixed(6) ?? null
 		]);
 		return { headers, rows };
 	}
@@ -404,7 +410,7 @@
 			{/if}
 		</header>
 		{#if loadingScores}
-			<SkeletonTable rows={8} cols={6} />
+			<SkeletonTable rows={8} cols={8} />
 		{:else if scoresError}
 			<p class="muted">Failed to load scores: {scoresError}</p>
 		{:else if rawRows.length === 0}
