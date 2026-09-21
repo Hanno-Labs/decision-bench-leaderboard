@@ -17,13 +17,7 @@ export const SIZE_LOG_MAX = 6;
 export const SIZE_MIN_M = 1; // 1M
 export const SIZE_MAX_M = 1_000_000; // 1T in millions
 
-export const MODEL_TYPES: ModelType[] = [
-	'dense',
-	'cross-encoder',
-	'late-interaction',
-	'sparse',
-	'router'
-];
+export const MODEL_TYPES: ModelType[] = ['decision-model', 'language-model', 'classifier', 'api'];
 
 export const MODEL_MODALITIES = ['text', 'image', 'audio', 'video'] as const;
 export type ModelModality = (typeof MODEL_MODALITIES)[number];

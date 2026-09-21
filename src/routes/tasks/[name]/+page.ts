@@ -9,6 +9,7 @@ import { flattenMenu, type Benchmark, type TaskMeta } from '$lib/types';
 export const prerender = !process.env.BUILD_NO_PRERENDER;
 
 export const entries: EntryGenerator = async () => {
+	if (process.env.BUILD_NO_PRERENDER) return [];
 	const tasks = await loadTasks();
 	return tasks.map((t) => ({ name: t.name }));
 };

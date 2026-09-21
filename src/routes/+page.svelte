@@ -3,7 +3,6 @@
 	import MenuSection from '$lib/components/MenuSection.svelte';
 	import PrimaryLeaderTile from '$lib/components/PrimaryLeaderTile.svelte';
 	import ShareMeta from '$lib/components/ShareMeta.svelte';
-	import Sponsors from '$lib/components/Sponsors.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -11,7 +10,7 @@
 
 <ShareMeta
 	title="Benchmark Overview"
-	description="MTEB Leaderboard home — primary General / Retrieval / English benchmark winners plus curated sections for language, modality, retrieval, and domain-specific evaluations."
+	description="DecisionBench compares decision models across boolean judgments, runtime-defined choices, ordered scores, application families, and domains."
 />
 
 <main id="main-content" tabindex="-1" class="page">
@@ -47,8 +46,7 @@
 				{/each}
 			{:catch}
 				<p class="load-error" role="status">
-					Couldn't load featured leaderboards. The backend may be unavailable — try refreshing in a
-					moment.
+					Couldn't load the reviewed result matrix. Try refreshing in a moment.
 				</p>
 			{/await}
 		</div>
@@ -72,13 +70,10 @@
 			{/each}
 		{:catch}
 			<p class="load-error" role="status">
-				Couldn't load benchmark sections. The backend may be unavailable — try refreshing in a
-				moment.
+				Couldn't load benchmark sections. Try refreshing in a moment.
 			</p>
 		{/await}
 	</div>
-
-	<Sponsors />
 </main>
 
 <style>

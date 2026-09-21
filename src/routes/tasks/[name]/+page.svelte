@@ -289,7 +289,7 @@
 	title={taskName}
 	description={task.meta.description
 		? `${task.meta.type} task · ${task.meta.languages.length} languages · ${task.meta.domains.length} domains — ${task.meta.description}`
-		: `${taskName} on the MTEB Leaderboard.`}
+		: `${taskName} on the DecisionBench Leaderboard.`}
 	entity={{ kind: 'task', name: taskName }}
 />
 

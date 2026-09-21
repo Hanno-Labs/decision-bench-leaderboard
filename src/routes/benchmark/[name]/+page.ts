@@ -1,5 +1,5 @@
 // Prerendered so per-entity `ShareMeta` lands in static HTML for social crawlers.
-// Requires `PUBLIC_API_URL` reachable during `vite build`.
+// Docker builds opt into the SPA fallback while loading the bundled result matrix.
 import { error } from '@sveltejs/kit';
 import type { EntryGenerator, PageLoad } from './$types';
 import { HttpError, loadBenchmark, loadBenchmarks } from '$lib/data/service';
@@ -8,6 +8,7 @@ import type { Benchmark } from '$lib/types';
 export const prerender = !process.env.BUILD_NO_PRERENDER;
 
 export const entries: EntryGenerator = async () => {
+	if (process.env.BUILD_NO_PRERENDER) return [];
 	const benches = await loadBenchmarks();
 	return benches.map((b) => ({ name: b.name }));
 };

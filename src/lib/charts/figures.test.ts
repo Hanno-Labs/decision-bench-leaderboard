@@ -92,10 +92,10 @@ describe('performanceSizePlot', () => {
 			hovertemplate: string;
 		};
 
-		expect(trace.customdata[0][3]).toBe((1.5e9).toLocaleString());
-		expect(trace.customdata[1][3]).toBe('—');
-		expect(trace.hovertemplate).toContain('Total parameters: %{customdata[3]}');
-		expect(trace.hovertemplate).toContain('Rank: %{customdata[4]}');
+		expect(trace.customdata[0][1]).toBe((1.5e9).toLocaleString());
+		expect(trace.customdata[1][1]).toBe('—');
+		expect(trace.hovertemplate).toContain('Total parameters: %{customdata[1]}');
+		expect(trace.hovertemplate).toContain('Rank: %{customdata[2]}');
 	});
 
 	it('highlights pinned rows with a thicker marker outline', () => {

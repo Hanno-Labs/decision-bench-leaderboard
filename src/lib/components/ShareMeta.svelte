@@ -10,17 +10,9 @@
 
 	import { page } from '$app/state';
 	import { base } from '$app/paths';
-	// MUST be `$env/static/public` — `$env/dynamic/public` reads from
-	// `globalThis.__sveltekit_<id>.env`, which SvelteKit only populates
-	// when its server runtime is in the request path. adapter-static
-	// behind nginx serves prerendered HTML directly, so the dynamic
-	// object stays undefined and every import here throws → blank
-	// "Loading…" on every page. CI's typecheck reads PUBLIC_API_URL from
-	// the workflow env so `svelte-kit sync` emits the type.
-	import { PUBLIC_API_URL } from '$env/static/public';
 
 	interface Props {
-		// Card title. Will be suffixed with " · MTEB Leaderboard" so the brand
+		// Card title. Will be suffixed with " · DecisionBench Leaderboard" so the brand
 		// is always visible. Pass the entity name (benchmark / task / model)
 		// for detail pages, the section name for catalogs.
 		title: string;
@@ -32,22 +24,17 @@
 		// Absolute or root-relative image URL. The catalog / index pages
 		// usually pass undefined and the default dots-icon kicks in.
 		image?: string;
-		// Per-entity hero variant. When set, ShareMeta points the OG image
-		// at the backend's pre-rendered card:
-		// `${PUBLIC_API_URL}/og/{kind}/{encodeURIComponent(name)}.png`.
-		// The backend's `generate.mjs` renders one per entity, so any
-		// benchmark / task / model gets a custom hero — no top-N cut.
-		// Falls back to `image` then `og-default.png` when no API URL is
-		// configured (offline mock builds).
+		// Reserved for entity-specific social cards. DecisionBench currently
+		// uses the supplied image or the bundled default card.
 		entity?: { kind: 'benchmark' | 'task' | 'model'; name: string };
 		// Twitter card style. `summary_large_image` displays a wide hero card
 		// (recommended for the benchmark / task / model detail pages so the
-		// MTEB brand reads at a glance). `summary` is a smaller square card.
+		// DecisionBench brand reads at a glance). `summary` is a smaller square card.
 		twitterCard?: 'summary' | 'summary_large_image';
 	}
-	let { title, description, image, entity, twitterCard = 'summary_large_image' }: Props = $props();
+	let { title, description, image, twitterCard = 'summary_large_image' }: Props = $props();
 
-	let fullTitle = $derived(`${title} · MTEB Leaderboard`);
+	let fullTitle = $derived(`${title} · DecisionBench Leaderboard`);
 	// Cap to 200 chars — every major social card truncates around there, and
 	// the per-call slice keeps the meta tag short. Strips newlines too because
 	// some readers (Slack) treat newlines as <br> inside the card body.
@@ -58,37 +45,17 @@
 	// `http://localhost:5173`, which is fine for local sharing tests.
 	let origin = $derived(page.url.origin);
 	let canonicalUrl = $derived(page.url.href);
-	// Per-entity hero takes precedence when the caller declares one. The
-	// PNG is served by the mteb FastAPI backend out of its persistent
-	// /data/og volume (see `mteb/api/og/generate.mjs`). When PUBLIC_API_URL
-	// isn't set (offline mock build), `entityImage` resolves to null and
-	// the fallback chain below kicks in.
-	let apiBase = $derived(PUBLIC_API_URL?.trim().replace(/\/$/, '') || '');
-	// Encode each path segment individually so model names like
-	// `microsoft/harrier-oss-v1-27b` stay nested in the URL — Starlette's
-	// StaticFiles decodes `%2F` to `/` before file lookup, so a single
-	// encoded slug always 404s. Per-segment encoding mirrors the
-	// frontend route layout (`/models/[...name]`).
-	let entityImage = $derived(
-		entity && apiBase
-			? `${apiBase}/og/${entity.kind}/${entity.name
-					.split('/')
-					.map(encodeURIComponent)
-					.join('/')}.png`
-			: null
-	);
 	// Pages without an entity hero (home, /compare, the catalog index
 	// pages) fall back to the shipped `static/og-default.png` so social
 	// previewers still render a card. The PNG has to exist at build time
 	// for SvelteKit's prerender link-check to pass — committed under
 	// `static/`, served as `${base}/og-default.png`.
 	let absImage = $derived<string>(
-		entityImage ??
-			(image
-				? image.startsWith('http')
-					? image
-					: `${origin}${image.startsWith('/') ? image : `/${image}`}`
-				: `${origin}${base}/og-default.png`)
+		image
+			? image.startsWith('http')
+				? image
+				: `${origin}${image.startsWith('/') ? image : `/${image}`}`
+			: `${origin}${base}/og-default.png`
 	);
 </script>
 
@@ -106,7 +73,7 @@
 	     generic catch-all; we don't need `article` since these are catalog
 	     pages, not blog posts. -->
 	<meta property="og:type" content="website" />
-	<meta property="og:site_name" content="MTEB Leaderboard" />
+	<meta property="og:site_name" content="DecisionBench Leaderboard" />
 	<meta property="og:title" content={fullTitle} />
 	<meta property="og:description" content={desc} />
 	<meta property="og:url" content={canonicalUrl} />

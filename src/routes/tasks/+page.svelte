@@ -292,7 +292,7 @@
 
 <ShareMeta
 	title="Tasks"
-	description={`Every task across every benchmark on the MTEB Leaderboard — ${ALL_TASKS.length || '1700+'} entries spanning retrieval, classification, clustering, pair classification, and semantic similarity.`}
+	description={`Every scored DecisionBench slice — ${ALL_TASKS.length || '0'} task views spanning decision primitives, use-case families, domains, and candidate counts.`}
 />
 
 <div class="layout-sidebar">
@@ -300,20 +300,15 @@
 		<header class="hero index-hero">
 			<h1>Tasks</h1>
 			<p class="lead">
-				Every task across every benchmark, deduped by name. Click a card to see how each model
-				performs on that task.
+				Every scored slice across DecisionBench. Open one to compare models on a primitive, family,
+				domain, or candidate-count regime.
 			</p>
 			<p class="contribute-note">
-				To add your task, follow our
+				To add a task, follow the
 				<a
-					href="https://embeddings-benchmark.github.io/mteb/contributing/adding_a_dataset/"
+					href="https://github.com/Hanno-Labs/decision-bench/blob/main/docs/adding-a-task.md"
 					target="_blank"
-					rel="noreferrer">contributor guide</a
-				>. Already have model scores? See the
-				<a
-					href="https://embeddings-benchmark.github.io/mteb/contributing/submitting_results/"
-					target="_blank"
-					rel="noreferrer">submitting results guide</a
+					rel="noreferrer">task guide</a
 				>.
 			</p>
 		</header>

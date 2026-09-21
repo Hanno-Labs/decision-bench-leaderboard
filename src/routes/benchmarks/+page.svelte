@@ -215,7 +215,7 @@
 
 <ShareMeta
 	title="All benchmarks"
-	description={`Every benchmark registered in MTEB — ${allBenchmarks.length || '100+'} suites spanning multilingual, multimodal, retrieval, classification, clustering, semantic similarity, and domain-specific evaluations.`}
+	description={`DecisionBench and its primitive, family, and domain views — ${allBenchmarks.length || '1'} independently filterable benchmark slices.`}
 />
 
 <div class="layout-sidebar">
@@ -223,13 +223,13 @@
 		<header class="hero">
 			<h1>All benchmarks</h1>
 			<p class="lead">
-				Every benchmark registered in mteb — including ones that aren't on the curated explorer
-				menu. Use the search box to find a benchmark by name.
+				Explore the complete DecisionBench result matrix or focus on a decision primitive, use-case
+				family, or application domain.
 			</p>
 			<p class="contribute-note">
-				To add your benchmark, follow our
+				To contribute a benchmark view, follow the
 				<a
-					href="https://embeddings-benchmark.github.io/mteb/contributing/adding_a_benchmark/"
+					href="https://github.com/Hanno-Labs/decision-bench/blob/main/docs/contributing.md"
 					target="_blank"
 					rel="noreferrer">contributor guide</a
 				>.

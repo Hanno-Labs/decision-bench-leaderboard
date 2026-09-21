@@ -5,7 +5,7 @@ import { loadBenchmarkMenu, loadTasks } from '$lib/data/service';
 import { flattenMenu } from '$lib/types';
 import { COLLATOR } from '$lib/format';
 
-export const prerender = true;
+export const prerender = !process.env.BUILD_NO_PRERENDER;
 
 export interface TaskEntry {
 	name: string;

@@ -7,22 +7,10 @@
 	import { afterNavigate, beforeNavigate } from '$app/navigation';
 	import { page, updated } from '$app/state';
 	import { base, resolve } from '$app/paths';
-	import { PUBLIC_API_URL } from '$env/static/public';
 	import BookText from 'lucide-svelte/icons/book-text';
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import ComparePinnedButton from '$lib/components/ComparePinnedButton.svelte';
 	import { filters } from '$lib/stores/filters.svelte';
-
-	// Preconnect to the backend so the first fetch lands ~150ms faster on cold
-	// hits. URL tracks `PUBLIC_API_URL` per build.
-	let preconnectHref = (() => {
-		try {
-			const u = new URL(PUBLIC_API_URL);
-			return u.origin;
-		} catch {
-			return null;
-		}
-	})();
 
 	let { children } = $props();
 
@@ -80,9 +68,6 @@
 
 <svelte:head>
 	<link rel="icon" href="{base}/dots-icon.ico" type="image/x-icon" />
-	{#if preconnectHref}
-		<link rel="preconnect" href={preconnectHref} crossorigin="anonymous" />
-	{/if}
 </svelte:head>
 
 <!-- ShareMeta is intentionally NOT rendered at the layout level. Every
@@ -99,8 +84,8 @@
 
 	<header class="bar">
 		<a class="brand" href={resolve('/')}>
-			<img class="brand-icon" src="{base}/dots-icon.png" alt="MTEB logo" width="22" height="22" />
-			<span class="name">MTEB</span>
+			<span class="brand-mark" aria-hidden="true">◈</span>
+			<span class="name">DecisionBench</span>
 		</a>
 		<nav class="subnav" aria-label="Sections">
 			{#each NAV as item (item.href)}
@@ -124,10 +109,10 @@
 			<ThemeToggle />
 			<a
 				class="icon-link"
-				href="https://github.com/embeddings-benchmark/mteb/"
+				href="https://github.com/Hanno-Labs/decision-bench"
 				target="_blank"
 				rel="noreferrer"
-				title="MTEB source on GitHub"
+				title="DecisionBench source on GitHub"
 			>
 				<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
 					<path
@@ -135,11 +120,11 @@
 						d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.55 0-.27-.01-1-.02-1.96-3.2.7-3.88-1.54-3.88-1.54-.52-1.34-1.28-1.7-1.28-1.7-1.04-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.28 1.18-3.08-.12-.29-.51-1.46.11-3.05 0 0 .97-.31 3.18 1.18.92-.26 1.91-.39 2.89-.39.98 0 1.97.13 2.89.39 2.2-1.5 3.17-1.18 3.17-1.18.63 1.59.24 2.76.12 3.05.74.8 1.18 1.82 1.18 3.08 0 4.42-2.69 5.39-5.25 5.68.41.35.78 1.05.78 2.11 0 1.52-.01 2.75-.01 3.13 0 .31.21.66.8.55C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"
 					/>
 				</svg>
-				<span>MTEB</span>
+				<span>Source</span>
 			</a>
 			<a
 				class="icon-link"
-				href="https://embeddings-benchmark.github.io/mteb/"
+				href="https://ubiquitous-bassoon-zzmjggp.pages.github.io/"
 				target="_blank"
 				rel="noreferrer"
 				title="Documentation site"
@@ -161,7 +146,7 @@
 	<footer class="page-footer" aria-label="Site footer">
 		<a
 			class="footer-link"
-			href="https://github.com/embeddings-benchmark/leaderboardv2"
+			href="https://github.com/Hanno-Labs/decision-bench-leaderboard"
 			target="_blank"
 			rel="noreferrer"
 		>
@@ -253,11 +238,15 @@
 	.brand:hover {
 		text-decoration: none;
 	}
-	.brand-icon {
+	.brand-mark {
+		display: inline-grid;
+		place-items: center;
 		width: 24px;
 		height: 24px;
-		flex-shrink: 0;
-		object-fit: contain;
+		border-radius: 7px;
+		background: var(--primary-soft);
+		color: var(--primary-strong);
+		font-weight: 900;
 	}
 	.name {
 		font-family: var(--font-sans);
@@ -390,10 +379,6 @@
 		}
 		.brand {
 			gap: 6px;
-		}
-		.brand-icon {
-			width: 20px;
-			height: 20px;
 		}
 		.name {
 			font-size: 13px;
