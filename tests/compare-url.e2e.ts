@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
 const MAX_PICKED = 3;
-const AVAILABLE_BENCHMARKS = 3;
+const AVAILABLE_BENCHMARKS = 29;
 
 async function waitForCompareReady(page: Page) {
 	// Two chips = the page auto-seeded the top 2 models from the primary summary.
