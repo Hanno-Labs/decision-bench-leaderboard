@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Download from 'lucide-svelte/icons/download';
+	import Download from '@lucide/svelte/icons/download';
 	import { downloadCsv, type CsvCell } from '$lib/csv';
 
 	interface Props {

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import LayoutGrid from 'lucide-svelte/icons/layout-grid';
-	import Table from 'lucide-svelte/icons/table';
+	import LayoutGrid from '@lucide/svelte/icons/layout-grid';
+	import Table from '@lucide/svelte/icons/table';
 
 	export type ViewMode = 'cards' | 'table';
 

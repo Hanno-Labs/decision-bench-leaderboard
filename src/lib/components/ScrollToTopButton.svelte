@@ -3,7 +3,7 @@
      listener. FUTURE: `@container scroll-state(scrollable: top)` on the root
      would drop the JS once it leaves Chrome-only. -->
 <script lang="ts">
-	import ArrowUp from 'lucide-svelte/icons/arrow-up';
+	import ArrowUp from '@lucide/svelte/icons/arrow-up';
 
 	let visible = $state(false);
 	let sentinel: HTMLDivElement | undefined = $state();

@@ -24,6 +24,7 @@
 	import SkeletonTable from '$lib/components/SkeletonTable.svelte';
 	import CiteBlock from '$lib/components/CiteBlock.svelte';
 	import CopyableId from '$lib/components/CopyableId.svelte';
+	import BenchmarkIcon from '$lib/components/BenchmarkIcon.svelte';
 	import ShareUrlButton from '$lib/components/ShareUrlButton.svelte';
 	import MarkdownText from '$lib/components/MarkdownText.svelte';
 	import { apiUrl, isIconUrl, sortModalities } from '$lib/format';
@@ -338,23 +339,12 @@
 			<section class="hero panel hero-grid accent-rail" data-modality={accentModality}>
 				<div class="hero-left">
 					<div class="title-block">
-						{#if benchmark.icon}
-							{#if isIconUrl(benchmark.icon)}
-								<img
-									class="hero-icon icon-tile"
-									src={apiUrl(benchmark.icon)}
-									alt="{benchmark.displayName} icon"
-									width="32"
-									height="32"
-									fetchpriority="high"
-									crossorigin="anonymous"
-								/>
-							{:else}
-								<span class="hero-icon icon-tile icon-tile-text" aria-hidden="true"
-									>{benchmark.icon}</span
-								>
-							{/if}
-						{/if}
+						<BenchmarkIcon
+							icon={benchmark.icon}
+							label={benchmark.displayName}
+							size={32}
+							class="hero-icon"
+						/>
 						<div class="title-text">
 							<h1>{benchmark.displayName}</h1>
 							<CopyableId value={benchmark.name} ariaLabel="Copy benchmark id" />
@@ -525,7 +515,7 @@
 		gap: 4px;
 		min-width: 0;
 	}
-	.hero-icon {
+	.title-block :global(.hero-icon) {
 		--icon-size: 32px;
 		--icon-radius: 5px;
 		--icon-font-size: 22px;

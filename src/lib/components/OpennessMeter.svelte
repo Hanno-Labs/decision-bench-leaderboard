@@ -2,8 +2,8 @@
 	// Shared openness widget: a 0–6 pip meter with score, and an optional
 	// per-dimension breakdown. Presentational only — driven by the helpers in
 	// `$lib/openness`. Reused on the model card and (later) filters + table.
-	import Check from 'lucide-svelte/icons/check';
-	import X from 'lucide-svelte/icons/x';
+	import Check from '@lucide/svelte/icons/check';
+	import X from '@lucide/svelte/icons/x';
 	import type { ModelMeta } from '$lib/types';
 	import { opennessDimensions, opennessScore, OPENNESS_MAX } from '$lib/openness';
 

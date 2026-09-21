@@ -3,7 +3,7 @@
 	// pre-selected. Positioned away from ScrollToTopButton (bottom-
 	// left) and ShareUrlButton (bottom-right).
 
-	import ArrowLeftRight from 'lucide-svelte/icons/arrow-left-right';
+	import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
 	import { pinnedModels } from '$lib/stores/pinned.svelte';
 	import { leaderboard } from '$lib/stores/leaderboard.svelte';
 	import { resolve } from '$app/paths';

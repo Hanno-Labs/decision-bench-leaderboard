@@ -5,8 +5,8 @@
   for descending, upward for ascending.
 -->
 <script lang="ts">
-	import ArrowUpNarrowWide from 'lucide-svelte/icons/arrow-up-narrow-wide';
-	import ArrowDownWideNarrow from 'lucide-svelte/icons/arrow-down-wide-narrow';
+	import ArrowUpNarrowWide from '@lucide/svelte/icons/arrow-up-narrow-wide';
+	import ArrowDownWideNarrow from '@lucide/svelte/icons/arrow-down-wide-narrow';
 
 	interface Props {
 		dir: 'asc' | 'desc';

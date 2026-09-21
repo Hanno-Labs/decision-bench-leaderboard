@@ -5,8 +5,8 @@
 	// `$app/navigation`'s `replaceState`, which updates the address bar but
 	// leaves `page.url` stale (it only refreshes `page.state`).
 
-	import Check from 'lucide-svelte/icons/check';
-	import Link2 from 'lucide-svelte/icons/link-2';
+	import Check from '@lucide/svelte/icons/check';
+	import Link2 from '@lucide/svelte/icons/link-2';
 
 	let copied = $state(false);
 	let timer: ReturnType<typeof setTimeout> | null = null;

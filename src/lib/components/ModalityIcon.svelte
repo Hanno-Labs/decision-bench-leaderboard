@@ -5,10 +5,10 @@
 	//   image  → file-image
 	//   audio  → activity (waveform)
 	//   video  → video (camera + tape)
-	import TextAlignJustify from 'lucide-svelte/icons/text-align-justify';
-	import FileImage from 'lucide-svelte/icons/file-image';
-	import Activity from 'lucide-svelte/icons/activity';
-	import Video from 'lucide-svelte/icons/video';
+	import TextAlignJustify from '@lucide/svelte/icons/text-align-justify';
+	import FileImage from '@lucide/svelte/icons/file-image';
+	import Activity from '@lucide/svelte/icons/activity';
+	import Video from '@lucide/svelte/icons/video';
 
 	interface Props {
 		modality: string | null | undefined;

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Check from 'lucide-svelte/icons/check';
-	import Copy from 'lucide-svelte/icons/copy';
+	import Check from '@lucide/svelte/icons/check';
+	import Copy from '@lucide/svelte/icons/copy';
 
 	// A single pill that shows a code id and copies it to the clipboard
 	// when clicked anywhere on the pill (text or icon — the whole region

@@ -7,7 +7,7 @@
 	// Reads the pinned set directly from the singleton store so the
 	// button stays in sync with state changes from any other table.
 
-	import Pin from 'lucide-svelte/icons/pin';
+	import Pin from '@lucide/svelte/icons/pin';
 	import { pinnedModels } from '$lib/stores/pinned.svelte';
 
 	interface Props {
