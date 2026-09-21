@@ -21,6 +21,13 @@ test('home page renders the brand and at least one benchmark card', async ({ pag
 	await expect(page.getByRole('link', { name: 'Compare', exact: true })).toBeVisible();
 	// Benchmark cards render after the async menu loader resolves on mount.
 	await expect(page.locator('a[href*="/benchmark/"]').first()).toBeVisible({ timeout: 10_000 });
+	// Catalog icons render as real SVG pictograms, not the old diamond placeholders.
+	await expect(page.locator('.benchmark-icon svg').first()).toBeVisible();
+	const agentControlCard = page
+		.locator('a.card')
+		.filter({ hasText: 'DecisionBench(Agent Control, eng, v1)' })
+		.first();
+	await expect(agentControlCard.locator('.benchmark-icon svg')).toBeVisible();
 	// No pageerror / console.error.
 	expect(consoleErrors, consoleErrors.join('\n')).toEqual([]);
 });

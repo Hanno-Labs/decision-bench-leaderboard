@@ -14,9 +14,9 @@
 	 * ``color-scheme`` for the root element.
 	 */
 	import { onMount } from 'svelte';
-	import Sun from 'lucide-svelte/icons/sun';
-	import Monitor from 'lucide-svelte/icons/monitor';
-	import Moon from 'lucide-svelte/icons/moon';
+	import Sun from '@lucide/svelte/icons/sun';
+	import Monitor from '@lucide/svelte/icons/monitor';
+	import Moon from '@lucide/svelte/icons/moon';
 
 	type Choice = 'light' | 'system' | 'dark';
 

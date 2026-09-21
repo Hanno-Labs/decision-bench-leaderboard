@@ -1,6 +1,6 @@
 <!-- Icon + input + clear button. Targets ~32 px tall to align with `.sort select` + `.dir-btn`. -->
 <script lang="ts">
-	import Search from 'lucide-svelte/icons/search';
+	import Search from '@lucide/svelte/icons/search';
 
 	interface Props {
 		value: string;

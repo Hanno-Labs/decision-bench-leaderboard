@@ -2,7 +2,8 @@
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import type { Benchmark } from '$lib/types';
-	import { apiUrl, fmtCompact, isIconUrl, slug, sortModalities } from '$lib/format';
+	import { fmtCompact, slug, sortModalities } from '$lib/format';
+	import BenchmarkIcon from './BenchmarkIcon.svelte';
 	import CopyableId from './CopyableId.svelte';
 	import MarkdownText from './MarkdownText.svelte';
 	import ModalityIcon from './ModalityIcon.svelte';
@@ -25,23 +26,7 @@
 	data-modality={accentModality}
 >
 	<div class="card-head">
-		{#if b.icon}
-			{#if isIconUrl(b.icon)}
-				<img
-					class="card-icon icon-tile"
-					src={apiUrl(b.icon)}
-					alt="{b.displayName} icon"
-					width="28"
-					height="28"
-					loading="lazy"
-					decoding="async"
-					fetchpriority="low"
-					crossorigin="anonymous"
-				/>
-			{:else}
-				<span class="card-icon icon-tile icon-tile-text" aria-hidden="true">{b.icon}</span>
-			{/if}
-		{/if}
+		<BenchmarkIcon icon={b.icon} label={b.displayName} size={28} class="card-icon" />
 		<div class="card-titles">
 			<span class="title card-title" title={b.displayName}>{b.displayName}</span>
 			<CopyableId value={b.name} ariaLabel="Copy benchmark id" />
@@ -109,7 +94,7 @@
 		gap: 10px;
 	}
 	/* 1 px nudge so the icon's optical centre aligns with the title. */
-	.card-icon {
+	:global(.card-icon) {
 		--icon-size: 28px;
 		margin-top: 1px;
 	}

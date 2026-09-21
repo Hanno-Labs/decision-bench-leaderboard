@@ -18,8 +18,8 @@
 		OPENNESS_DIMENSIONS,
 		OPENNESS_MAX
 	} from '$lib/openness';
-	import Check from 'lucide-svelte/icons/check';
-	import X from 'lucide-svelte/icons/x';
+	import Check from '@lucide/svelte/icons/check';
+	import X from '@lucide/svelte/icons/x';
 	import { updateUrl } from '$lib/url-state';
 	import { untrack } from 'svelte';
 

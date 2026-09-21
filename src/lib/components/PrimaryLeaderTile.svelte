@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import type { Benchmark, BenchmarkLeaders } from '$lib/types';
-	import { apiUrl, isIconUrl, slug, splitModelName } from '$lib/format';
+	import { slug, splitModelName } from '$lib/format';
+	import BenchmarkIcon from './BenchmarkIcon.svelte';
 
 	// `undefined` = loading.
 	type LeadersResult = BenchmarkLeaders | { error: string };
@@ -31,24 +32,12 @@
 >
 	<header class="prim-head">
 		<div class="prim-title">
-			{#if benchmark.icon}
-				{#if isIconUrl(benchmark.icon)}
-					<img
-						class="prim-icon icon-tile"
-						src={apiUrl(benchmark.icon)}
-						alt=""
-						width="22"
-						height="22"
-						loading="lazy"
-						decoding="async"
-						fetchpriority="low"
-						crossorigin="anonymous"
-					/>
-				{:else}
-					<span class="prim-icon icon-tile icon-tile-text" aria-hidden="true">{benchmark.icon}</span
-					>
-				{/if}
-			{/if}
+			<BenchmarkIcon
+				icon={benchmark.icon}
+				label={benchmark.displayName}
+				size={22}
+				class="prim-icon"
+			/>
 			<span class="prim-title-text">{benchmark.displayName}</span>
 		</div>
 		<span class="prim-chip">{label}</span>
@@ -129,13 +118,13 @@
 		font-weight: 700;
 		color: var(--ink-strong);
 	}
-	.prim-icon {
+	.prim-title :global(.prim-icon) {
 		--icon-size: 22px;
 		--icon-bg: color-mix(in srgb, var(--surface) 60%, var(--tint));
 	}
 	/* Emoji glyph variant — clear the tinted backdrop so the glyph
 	   reads cleanly. */
-	.prim-icon.icon-tile-text {
+	.prim-title :global(.prim-icon.icon-tile-text) {
 		background: transparent;
 	}
 	.prim-title-text {

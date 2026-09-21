@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import type { Benchmark } from '$lib/types';
-	import { apiUrl, fmtCompact, isIconUrl, slug, sortModalities } from '$lib/format';
+	import { fmtCompact, slug, sortModalities } from '$lib/format';
 	import { stickyHead } from '$lib/actions/sticky-head';
 	import type { SortState } from '$lib/stores/sort.svelte';
+	import BenchmarkIcon from './BenchmarkIcon.svelte';
 	import ModalityIcon from './ModalityIcon.svelte';
 	import SortHeader from './SortHeader.svelte';
 
@@ -44,22 +45,7 @@
 							class="tbl-row-link row-link-icon"
 							href={resolve('/benchmark/[name]', { name: slug(b.name) })}
 						>
-							{#if b.icon}
-								{#if isIconUrl(b.icon)}
-									<img
-										class="icon-tile row-icon"
-										src={apiUrl(b.icon)}
-										alt=""
-										width="24"
-										height="24"
-										loading="lazy"
-										decoding="async"
-										crossorigin="anonymous"
-									/>
-								{:else}
-									<span class="icon-tile icon-tile-text row-icon" aria-hidden="true">{b.icon}</span>
-								{/if}
-							{/if}
+							<BenchmarkIcon icon={b.icon} label={b.displayName} size={24} class="row-icon" />
 							<span class="row-text">
 								<span class="tbl-row-title">{b.displayName}</span>
 								<span class="tbl-row-id">{b.name}</span>

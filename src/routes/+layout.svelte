@@ -7,7 +7,7 @@
 	import { afterNavigate, beforeNavigate } from '$app/navigation';
 	import { page, updated } from '$app/state';
 	import { base, resolve } from '$app/paths';
-	import BookText from 'lucide-svelte/icons/book-text';
+	import BookText from '@lucide/svelte/icons/book-text';
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import ComparePinnedButton from '$lib/components/ComparePinnedButton.svelte';
 	import { filters } from '$lib/stores/filters.svelte';
