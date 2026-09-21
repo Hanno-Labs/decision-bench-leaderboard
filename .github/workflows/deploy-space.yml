@@ -1,0 +1,51 @@
+name: Deploy to Hugging Face Space
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: space-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Hugging Face CLI
+        run: curl -LsSf https://hf.co/cli/install.sh | bash
+
+      - name: Stage Space source
+        run: |
+          destination="${RUNNER_TEMP}/decision-bench-space"
+          mkdir -p "${destination}"
+          rsync -a --delete \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --exclude '.svelte-kit/' \
+            --exclude 'build/' \
+            --exclude 'node_modules/' \
+            --exclude 'space/' \
+            --exclude 'test-results/' \
+            ./ "${destination}/"
+          cp space/README.md "${destination}/README.md"
+
+      - name: Publish Space source
+        env:
+          HF_OIDC_RESOURCE: spaces/Hanno-Labs/decision-bench-leaderboard
+        run: |
+          hf upload \
+            Hanno-Labs/decision-bench-leaderboard \
+            "${RUNNER_TEMP}/decision-bench-space" \
+            . \
+            --repo-type space \
+            --commit-message "Deploy ${GITHUB_SHA::7}"
