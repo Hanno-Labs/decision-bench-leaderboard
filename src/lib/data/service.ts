@@ -196,6 +196,7 @@ function suiteRow(
 ): LeaderboardRow | undefined {
 	const baseRow = modelRows.find((row) => row.view === definition.score.view);
 	if (!baseRow) return undefined;
+	const precomputedSuiteRow = modelRows.find((row) => row.view === `suite:${definition.name}`);
 	const baseCorrect = correctRows(baseRow);
 	if (baseCorrect == null) return undefined;
 
@@ -238,7 +239,8 @@ function suiteRow(
 			successfulRows
 		),
 		expected_calibration_error:
-			exclusionRows.length === 0 ? baseRow.expected_calibration_error : null,
+			precomputedSuiteRow?.expected_calibration_error ??
+			(exclusionRows.length === 0 ? baseRow.expected_calibration_error : null),
 		mean_latency_seconds: weightedMetric(
 			baseRow,
 			exclusionRows,
