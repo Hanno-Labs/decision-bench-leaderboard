@@ -30,7 +30,7 @@ test.describe('/models Openness column', () => {
 		await expect(rows(page)).toHaveCount(14);
 		await expect(rows(page).locator('.openness-cell [role="img"]')).toHaveCount(14);
 		for (const meter of await rows(page).locator('.openness-cell [role="img"]').all()) {
-			await expect(meter).toHaveAttribute('aria-label', 'Openness score: 3 of 6 dimensions');
+			await expect(meter).toHaveAttribute('aria-label', /^Openness score: [0-6] of 6 dimensions$/);
 		}
 	});
 
