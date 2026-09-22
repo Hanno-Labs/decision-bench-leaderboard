@@ -100,7 +100,9 @@ test.describe('Openness on the benchmark summary table', () => {
 		});
 		await expect(header(page, /Openness/)).toBeVisible();
 		const rowCount = await page.locator('.tab-pane.active table tbody tr').count();
-		await expect(page.locator('.tab-pane.active .openness-cell [role="img"]')).toHaveCount(rowCount);
+		await expect(page.locator('.tab-pane.active .openness-cell [role="img"]')).toHaveCount(
+			rowCount
+		);
 	});
 });
 
