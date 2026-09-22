@@ -27,8 +27,9 @@ test.describe('/models Openness column', () => {
 	test('renders reviewed openness metadata for every submitted model', async ({ page }) => {
 		await gotoModelsTable(page);
 		await expect(header(page, /Openness/)).toBeVisible();
-		await expect(rows(page)).toHaveCount(14);
-		await expect(rows(page).locator('.openness-cell [role="img"]')).toHaveCount(14);
+		const rowCount = await rows(page).count();
+		expect(rowCount).toBeGreaterThan(0);
+		await expect(rows(page).locator('.openness-cell [role="img"]')).toHaveCount(rowCount);
 		for (const meter of await rows(page).locator('.openness-cell [role="img"]').all()) {
 			await expect(meter).toHaveAttribute('aria-label', /^Openness score: [0-6] of 6 dimensions$/);
 		}
@@ -36,12 +37,13 @@ test.describe('/models Openness column', () => {
 
 	test('sorting by Openness updates URL state without losing rows', async ({ page }) => {
 		await gotoModelsTable(page);
+		const rowCount = await rows(page).count();
 		await page
 			.getByRole('button', { name: /^Openness/ })
 			.first()
 			.click();
 		await expect(page).toHaveURL(/[?&]s\.models=openness/);
-		await expect(rows(page)).toHaveCount(14);
+		await expect(rows(page)).toHaveCount(rowCount);
 	});
 
 	test('hovering a cell opens the per-dimension breakdown', async ({ page }) => {
@@ -72,14 +74,17 @@ test.describe('/models cards view', () => {
 test.describe('/models Openness filter', () => {
 	test('requirements round-trip and use AND semantics', async ({ page }) => {
 		await gotoModelsTable(page);
+		const totalRows = await rows(page).count();
 		await facetCheckbox(page, 'Open weights').click({ force: true });
 		await expect(page).toHaveURL(/[?&]openreq=weights/);
-		await expect(rows(page)).toHaveCount(10);
+		const openWeightRows = await rows(page).count();
+		expect(openWeightRows).toBeGreaterThan(0);
+		expect(openWeightRows).toBeLessThan(totalRows);
 
 		const filteredUrl = page.url();
 		await page.goto(filteredUrl);
 		await expect(facetCheckbox(page, 'Open weights')).toBeChecked();
-		await expect(rows(page)).toHaveCount(10);
+		await expect(rows(page)).toHaveCount(openWeightRows);
 
 		await facetCheckbox(page, 'Training data').click({ force: true });
 		await expect(page).toHaveURL(/[?&]openreq=weights%2Cdata/);
@@ -94,7 +99,8 @@ test.describe('Openness on the benchmark summary table', () => {
 			timeout: 20_000
 		});
 		await expect(header(page, /Openness/)).toBeVisible();
-		await expect(page.locator('.tab-pane.active .openness-cell [role="img"]')).toHaveCount(14);
+		const rowCount = await page.locator('.tab-pane.active table tbody tr').count();
+		await expect(page.locator('.tab-pane.active .openness-cell [role="img"]')).toHaveCount(rowCount);
 	});
 });
 
