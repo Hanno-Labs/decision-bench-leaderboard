@@ -77,7 +77,7 @@ describe('data-driven benchmark catalog', () => {
 						(row) =>
 							`Domain: ${row.view_name
 								.split('_')
-								.map((part) => part[0].toUpperCase() + part.slice(1))
+								.map((part: string) => part[0].toUpperCase() + part.slice(1))
 								.join(' ')}`
 					)
 			)
