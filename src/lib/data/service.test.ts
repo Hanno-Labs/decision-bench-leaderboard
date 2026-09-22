@@ -19,10 +19,10 @@ const fetchSnapshot: typeof globalThis.fetch = async (input) => {
 describe('data-driven benchmark catalog', () => {
 	it('groups the English suite, every exported domain, and reasoning into Home sections', async () => {
 		const benchmarks = await loadBenchmarks(fetchSnapshot);
-		expect(benchmarks).toHaveLength(29);
+		expect(benchmarks).toHaveLength(30);
 		expect(benchmarks.at(0)?.name).toBe('DecisionBench(eng, v1)');
 		expect(benchmarks.at(-1)?.name).toBe('DecisionBench(Reasoning, eng, v1)');
-		expect(benchmarks.filter((benchmark) => benchmark.domains.length === 1)).toHaveLength(27);
+		expect(benchmarks.filter((benchmark) => benchmark.domains.length === 1)).toHaveLength(28);
 		expect(benchmarks.some((benchmark) => benchmark.name.includes(' / '))).toBe(false);
 		expect((await loadBenchmarkMenu(fetchSnapshot)).map((section) => section.name)).toEqual([
 			'General Purpose',
@@ -87,16 +87,16 @@ describe('data-driven benchmark catalog', () => {
 			.map((task) => task.name)
 			.sort();
 
-		expect(exportedDomains).toHaveLength(27);
+		expect(exportedDomains).toHaveLength(28);
 		expect(publishedDomains).toEqual(exportedDomains);
-		expect(tasks).toHaveLength(51);
+		expect(tasks).toHaveLength(52);
 		expect(tasks.some((task) => task.name.startsWith('Primitive:'))).toBe(false);
 		expect(tasks.some((task) => task.name.startsWith('Candidate Count:'))).toBe(false);
 		expect(tasks.map((task) => task.name)).toContain('Domain: Legal');
 		const domainBenchmarks = (await loadBenchmarks(fetchSnapshot)).filter(
 			(benchmark) => benchmark.domains.length === 1
 		);
-		expect(domainBenchmarks).toHaveLength(27);
+		expect(domainBenchmarks).toHaveLength(28);
 		expect(domainBenchmarks.map((benchmark) => benchmark.name)).toContain(
 			'DecisionBench(Legal, eng, v1)'
 		);

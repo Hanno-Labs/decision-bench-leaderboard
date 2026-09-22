@@ -31,7 +31,8 @@
 				"DecisionBench(Software Engineering, eng, v1)",
 				"DecisionBench(Tax Documents, eng, v1)",
 				"DecisionBench(Technical, eng, v1)",
-				"DecisionBench(Web, eng, v1)"
+				"DecisionBench(Web, eng, v1)",
+				"DecisionBench(Web Content, eng, v1)"
 			]
 		},
 		{"name": "Reasoning", "open": true, "benchmarks": ["DecisionBench(Reasoning, eng, v1)"]}
@@ -100,6 +101,7 @@
 		{"name":"DecisionBench(Tax Documents, eng, v1)","displayName":"DecisionBench(Tax Documents, eng, v1)","description":"The frozen English tax documents domain subset of DecisionBench.","icon":"lucide:tax-documents","languages":["English"],"domains":["Tax Documents"],"modalities":["text"],"score":{"view":"domain:tax_documents","expectedRows":100},"taskViews":["domain:tax_documents"]},
 		{"name":"DecisionBench(Technical, eng, v1)","displayName":"DecisionBench(Technical, eng, v1)","description":"The frozen English technical domain subset of DecisionBench.","icon":"lucide:technical","languages":["English"],"domains":["Technical"],"modalities":["text"],"score":{"view":"domain:technical","expectedRows":2223},"taskViews":["domain:technical"]},
 		{"name":"DecisionBench(Web, eng, v1)","displayName":"DecisionBench(Web, eng, v1)","description":"The frozen English web domain subset of DecisionBench.","icon":"lucide:web","languages":["English"],"domains":["Web"],"modalities":["text"],"score":{"view":"domain:web","expectedRows":2222},"taskViews":["domain:web"]},
+		{"name":"DecisionBench(Web Content, eng, v1)","displayName":"DecisionBench(Web Content, eng, v1)","description":"The frozen English web content domain subset of DecisionBench.","icon":"lucide:web-content","languages":["English"],"domains":["Web Content"],"modalities":["text"],"score":{"view":"domain:web_content","expectedRows":100},"taskViews":["domain:web_content"]},
 		{
 			"name": "DecisionBench(Reasoning, eng, v1)",
 			"displayName": "DecisionBench(Reasoning, eng, v1)",
