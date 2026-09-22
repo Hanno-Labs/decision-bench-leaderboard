@@ -27,8 +27,8 @@ test.describe('/models Openness column', () => {
 	test('renders reviewed openness metadata for every submitted model', async ({ page }) => {
 		await gotoModelsTable(page);
 		await expect(header(page, /Openness/)).toBeVisible();
-		await expect(rows(page)).toHaveCount(3);
-		await expect(rows(page).locator('.openness-cell [role="img"]')).toHaveCount(3);
+		await expect(rows(page)).toHaveCount(14);
+		await expect(rows(page).locator('.openness-cell [role="img"]')).toHaveCount(14);
 		for (const meter of await rows(page).locator('.openness-cell [role="img"]').all()) {
 			await expect(meter).toHaveAttribute('aria-label', 'Openness score: 3 of 6 dimensions');
 		}
@@ -41,7 +41,7 @@ test.describe('/models Openness column', () => {
 			.first()
 			.click();
 		await expect(page).toHaveURL(/[?&]s\.models=openness/);
-		await expect(rows(page)).toHaveCount(3);
+		await expect(rows(page)).toHaveCount(14);
 	});
 
 	test('hovering a cell opens the per-dimension breakdown', async ({ page }) => {
@@ -74,12 +74,12 @@ test.describe('/models Openness filter', () => {
 		await gotoModelsTable(page);
 		await facetCheckbox(page, 'Open weights').click({ force: true });
 		await expect(page).toHaveURL(/[?&]openreq=weights/);
-		await expect(rows(page)).toHaveCount(3);
+		await expect(rows(page)).toHaveCount(10);
 
 		const filteredUrl = page.url();
 		await page.goto(filteredUrl);
 		await expect(facetCheckbox(page, 'Open weights')).toBeChecked();
-		await expect(rows(page)).toHaveCount(3);
+		await expect(rows(page)).toHaveCount(10);
 
 		await facetCheckbox(page, 'Training data').click({ force: true });
 		await expect(page).toHaveURL(/[?&]openreq=weights%2Cdata/);
@@ -94,7 +94,7 @@ test.describe('Openness on the benchmark summary table', () => {
 			timeout: 20_000
 		});
 		await expect(header(page, /Openness/)).toBeVisible();
-		await expect(page.locator('.tab-pane.active .openness-cell [role="img"]')).toHaveCount(3);
+		await expect(page.locator('.tab-pane.active .openness-cell [role="img"]')).toHaveCount(14);
 	});
 });
 

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
-const MAX_PICKED = 3;
+const MAX_PICKED = 4;
 const MAX_BENCHMARKS = 6;
 
 async function waitForCompareReady(page: Page) {
@@ -179,7 +179,7 @@ test.describe('/compare model picker', () => {
 		const before = await dialog.locator('.picker-row').count();
 		expect(before).toBeGreaterThan(0);
 
-		await dialog.getByPlaceholder(/Search models/).fill('Nano');
+		await dialog.getByPlaceholder(/Search models/).fill('NanoJev');
 		await expect(dialog.locator('.picker-row')).toHaveCount(1);
 
 		await dialog.getByPlaceholder(/Search models/).fill('xyzzy-not-a-real-model');
