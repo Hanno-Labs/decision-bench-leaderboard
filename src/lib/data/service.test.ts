@@ -101,4 +101,22 @@ describe('data-driven benchmark catalog', () => {
 			'DecisionBench(Legal, eng, v1)'
 		);
 	});
+
+	it('shows specific descriptions for every task tooltip and task detail page', async () => {
+		const tasks = await loadTasks({}, fetchSnapshot);
+		const general = await loadSummary('DecisionBench(eng, v1)', undefined, fetchSnapshot);
+		const legal = catalog.benchmarks.find((benchmark) => benchmark.score.view === 'domain:legal');
+
+		expect(tasks).toHaveLength(52);
+		expect(tasks.every((task) => task.description.length > 40)).toBe(true);
+		expect(tasks.some((task) => task.description.includes('DecisionBench domain slice'))).toBe(
+			false
+		);
+		expect(tasks.find((task) => task.name === 'Domain: Legal')?.description).toBe(
+			legal?.description
+		);
+		expect(general.tasksMeta.find((task) => task.name === 'Family: Routing')?.description).toBe(
+			catalog.viewDescriptions['family:routing']
+		);
+	});
 });
