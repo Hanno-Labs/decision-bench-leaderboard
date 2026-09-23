@@ -13,9 +13,9 @@ npm run dev
 
 The reviewed result matrix is loaded from [`static/leaderboard.json`](static/leaderboard.json). It is generated from [Hanno-Labs/decision-bench-results](https://github.com/Hanno-Labs/decision-bench-results), not edited by hand.
 
-The results repository supplies each reviewed `model_type` and, for identifiable serving recipes,
-the underlying `base_model`. The UI keeps the recipe's credited name while showing the base
-checkpoint separately. Older data snapshots without these fields use the legacy type heuristic.
+The results repository supplies each reviewed `model_type`. When a recipe's result URL points to
+different Hugging Face weights, the UI keeps the recipe's credited name and shows those weights
+separately. Older data snapshots without a reviewed type use the legacy type heuristic.
 
 ## Verification
 

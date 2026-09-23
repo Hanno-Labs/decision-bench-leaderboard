@@ -23,18 +23,20 @@ describe('data-driven benchmark catalog', () => {
 			...rows[0],
 			model: 'ekzhang/openjev-sglang',
 			model_type: 'language-model',
-			base_model: 'nvidia/Qwen3.6-35B-A3B-NVFP4',
+			model_url: 'https://huggingface.co/nvidia/Qwen3.6-35B-A3B-NVFP4',
 			open_weights: true
 		});
 		const native = toModelMeta({
 			...rows[0],
 			model: 'Hanno-Labs/bosun-v3.1-0.6b',
 			model_type: 'decision-model',
+			model_url: 'https://huggingface.co/Hanno-Labs/bosun-v3.1-0.6b',
 			open_weights: true
 		});
 		expect(wrapper.modelType).toBe('language-model');
 		expect(wrapper.baseModel).toBe('nvidia/Qwen3.6-35B-A3B-NVFP4');
 		expect(native.modelType).toBe('decision-model');
+		expect(native.baseModel).toBeUndefined();
 	});
 	it('groups the English suite, every exported domain, and reasoning into Home sections', async () => {
 		const benchmarks = await loadBenchmarks(fetchSnapshot);

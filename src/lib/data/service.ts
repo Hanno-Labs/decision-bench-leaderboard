@@ -20,7 +20,6 @@ export interface LeaderboardRow {
 	model: string;
 	revision: string;
 	model_type?: 'decision-model' | 'language-model' | 'classifier' | null;
-	base_model?: string | null;
 	model_url: string | null;
 	adapter: string;
 	probability_source: string;
@@ -321,6 +320,12 @@ function modelType(row: LeaderboardRow): ModelMeta['modelType'] {
 	return 'decision-model';
 }
 
+function baseModel(row: LeaderboardRow): string | undefined {
+	const match = row.model_url?.match(/^https:\/\/huggingface\.co\/([^/]+\/[^/?#]+)/);
+	const checkpoint = match?.[1];
+	return checkpoint && checkpoint !== row.model ? checkpoint : undefined;
+}
+
 export function toModelMeta(row: LeaderboardRow): ModelMeta {
 	const separator = row.model.indexOf('/');
 	const org = separator >= 0 ? row.model.slice(0, separator) : '';
@@ -332,7 +337,7 @@ export function toModelMeta(row: LeaderboardRow): ModelMeta {
 		displayName,
 		org,
 		url: row.model_url ?? undefined,
-		baseModel: row.base_model ?? undefined,
+		baseModel: baseModel(row),
 		zeroShotPct: 100,
 		activeParamsB: paramsB,
 		totalParamsB: paramsB,
