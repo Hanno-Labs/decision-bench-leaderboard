@@ -37,6 +37,31 @@
 		},
 		{"name": "Reasoning", "open": true, "benchmarks": ["DecisionBench(Reasoning, eng, v1)"]}
 	],
+	"viewDescriptions": {
+		"family:action_selection": "Choose the next action that fits the current state and goal, including browser, game, robot, and trading decisions.",
+		"family:bounded_extraction": "Select the requested value from supplied data while respecting the stated boundaries and privacy constraints.",
+		"family:completion_assessment": "Judge whether an agent has enough progress and evidence to complete its assigned task.",
+		"family:content_classification": "Classify or filter social posts against a topic, policy, or relevance criterion.",
+		"family:document_classification": "Identify the type or section represented by a document page.",
+		"family:document_record_classification": "Assign a technical or patent record to the correct section or category.",
+		"family:document_workflows": "Choose the appropriate action or disposition in a legal document workflow.",
+		"family:entity_alignment": "Link a mention or record to the correct canonical entity.",
+		"family:function_agent_skill_routing": "Select the function, tool, or agent capability that should handle a request.",
+		"family:guardrails_moderation": "Detect harmful or threatening content and judge its severity.",
+		"family:navigation": "Choose the graph edge or relation that leads toward the requested entity.",
+		"family:record_classification": "Assign a database row to the correct record category or workflow.",
+		"family:retrieval_ranking": "Rank codebase search results by how well they answer a query.",
+		"family:retrieval_verification": "Judge whether retrieved content is relevant to the query.",
+		"family:review_scoring": "Estimate the risk or priority of a proposed code change.",
+		"family:risk_scoring": "Score the likely impact or risk of a tool action.",
+		"family:routing": "Choose the tool call, agent skill, or search strategy best suited to the request.",
+		"family:routing_triage": "Route an assistant or financial request to the appropriate workflow or service.",
+		"family:rubric_scoring_prioritization": "Score and prioritize product choices against a shopper's request.",
+		"family:semantic_filtering": "Judge whether a code line semantically matches a search query.",
+		"family:target_selection": "Choose the browser element or target for the next interaction.",
+		"family:triage": "Prioritize connected-home alerts and select the appropriate response.",
+		"family:verification": "Check whether evidence supports a claim or a runtime outcome satisfies the intended action."
+	},
 	"benchmarks": [
 		{
 			"name": "DecisionBench(eng, v1)",

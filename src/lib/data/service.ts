@@ -84,6 +84,7 @@ interface CatalogSection {
 interface BenchmarkCatalog {
 	sections: CatalogSection[];
 	benchmarks: CatalogBenchmark[];
+	viewDescriptions: Record<string, string>;
 }
 
 export interface FeaturedBenchmark {
@@ -147,8 +148,15 @@ async function loadCatalog(fetchFn: FetchFn = globalThis.fetch): Promise<Benchma
 		catalogPromise = fetchFn(CATALOG_URL).then(async (response) => {
 			if (!response.ok) throw new HttpError(response.status, response.statusText, CATALOG_URL);
 			const value = (await response.json()) as Partial<BenchmarkCatalog>;
-			if (!Array.isArray(value.sections) || !Array.isArray(value.benchmarks)) {
-				throw new Error('benchmark-catalog.json must contain sections and benchmarks arrays');
+			if (
+				!Array.isArray(value.sections) ||
+				!Array.isArray(value.benchmarks) ||
+				!value.viewDescriptions ||
+				typeof value.viewDescriptions !== 'object'
+			) {
+				throw new Error(
+					'benchmark-catalog.json must contain sections, benchmarks, and view descriptions'
+				);
 			}
 			return value as BenchmarkCatalog;
 		});
@@ -254,8 +262,17 @@ function taskName(kind: string, name: string): string {
 	return `${titleCase(kind)}: ${displayViewName(kind, name)}`;
 }
 
-function taskMeta(kind: string, name: string, rows: readonly LeaderboardRow[]): TaskMeta {
+function taskMeta(
+	kind: string,
+	name: string,
+	rows: readonly LeaderboardRow[],
+	catalog: BenchmarkCatalog
+): TaskMeta {
 	const key = `${kind}:${name}`;
+	const description =
+		catalog.viewDescriptions[key] ??
+		catalog.benchmarks.find((benchmark) => benchmark.score.view === key)?.description;
+	if (!description) throw new Error(`Missing description for task view ${key}`);
 	const rowCount = rows.find((row) => row.view === key)?.successful_rows ?? 0;
 	const modelCount = new Set(rows.filter((row) => row.view === key).map((row) => row.model)).size;
 	return {
@@ -265,10 +282,7 @@ function taskMeta(kind: string, name: string, rows: readonly LeaderboardRow[]): 
 		languages: ['English'],
 		domains: kind === 'domain' ? [displayViewName(kind, name)] : [],
 		modalities: ['text'],
-		description:
-			kind === 'candidate_count'
-				? `Decision quality on rows with exactly ${name} candidates.`
-				: `DecisionBench ${kind} slice for ${displayViewName(kind, name)}.`,
+		description,
 		reference: BENCHMARK_REPOSITORY,
 		citation: null,
 		isPublic: false,
@@ -292,7 +306,7 @@ function allTaskMeta(rows: readonly LeaderboardRow[], catalog: BenchmarkCatalog)
 	return catalogTaskViews(catalog)
 		.map((key) => {
 			const [kind, ...rest] = key.split(':');
-			return taskMeta(kind, rest.join(':'), rows);
+			return taskMeta(kind, rest.join(':'), rows, catalog);
 		})
 		.sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -396,7 +410,8 @@ function definitionForBenchmark(name: string, catalog: BenchmarkCatalog): Catalo
 
 function summaryFor(
 	definition: CatalogBenchmark,
-	rows: readonly LeaderboardRow[]
+	rows: readonly LeaderboardRow[],
+	catalog: BenchmarkCatalog
 ): BenchmarkSummary {
 	const grouped = rowsByModel(rows);
 	const taskNames = definition.taskViews
@@ -448,7 +463,7 @@ function summaryFor(
 		const rawName =
 			rows.find((row) => row.view_kind === kind && displayViewName(kind, row.view_name) === display)
 				?.view_name ?? display.toLowerCase().replaceAll(' ', '_');
-		return taskMeta(kind, rawName, rows);
+		return taskMeta(kind, rawName, rows, catalog);
 	});
 	return {
 		benchmarkName: definition.name,
@@ -512,7 +527,7 @@ export async function loadSummary(
 	fetchFn?: FetchFn
 ): Promise<BenchmarkSummary> {
 	const [rows, catalog] = await Promise.all([loadRows(fetchFn), loadCatalog(fetchFn)]);
-	return summaryFor(definitionForBenchmark(benchmarkName, catalog), rows);
+	return summaryFor(definitionForBenchmark(benchmarkName, catalog), rows, catalog);
 }
 
 export async function loadPerLanguage(
@@ -529,7 +544,7 @@ export async function loadLeaders(
 	fetchFn?: FetchFn
 ): Promise<BenchmarkLeaders> {
 	const [rows, catalog] = await Promise.all([loadRows(fetchFn), loadCatalog(fetchFn)]);
-	const summary = summaryFor(definitionForBenchmark(benchmarkName, catalog), rows);
+	const summary = summaryFor(definitionForBenchmark(benchmarkName, catalog), rows, catalog);
 	const leaders: BucketLeader[] = buckets.map(([min, max], index) => {
 		const row = summary.rows[index];
 		return {
@@ -644,7 +659,7 @@ export async function loadModelScores(name: string, fetchFn?: FetchFn): Promise<
 	const model = await loadModel(name, fetchFn);
 	const resultRows = [];
 	for (const definition of catalog.benchmarks) {
-		const summary = summaryFor(definition, rows);
+		const summary = summaryFor(definition, rows, catalog);
 		const row = summary.rows.find((item) => item.model.name === name);
 		if (!row) continue;
 		resultRows.push({
