@@ -6,7 +6,8 @@ import {
 	loadBenchmarks,
 	loadFeaturedBenchmarks,
 	loadSummary,
-	loadTasks
+	loadTasks,
+	toModelMeta
 } from './service';
 
 const fetchSnapshot: typeof globalThis.fetch = async (input) => {
@@ -17,6 +18,24 @@ const fetchSnapshot: typeof globalThis.fetch = async (input) => {
 };
 
 describe('data-driven benchmark catalog', () => {
+	it('uses reviewed model type and base model for wrapped language models', () => {
+		const wrapper = toModelMeta({
+			...rows[0],
+			model: 'ekzhang/openjev-sglang',
+			model_type: 'language-model',
+			base_model: 'nvidia/Qwen3.6-35B-A3B-NVFP4',
+			open_weights: true
+		});
+		const native = toModelMeta({
+			...rows[0],
+			model: 'Hanno-Labs/bosun-v3.1-0.6b',
+			model_type: 'decision-model',
+			open_weights: true
+		});
+		expect(wrapper.modelType).toBe('language-model');
+		expect(wrapper.baseModel).toBe('nvidia/Qwen3.6-35B-A3B-NVFP4');
+		expect(native.modelType).toBe('decision-model');
+	});
 	it('groups the English suite, every exported domain, and reasoning into Home sections', async () => {
 		const benchmarks = await loadBenchmarks(fetchSnapshot);
 		expect(benchmarks).toHaveLength(30);

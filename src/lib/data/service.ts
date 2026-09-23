@@ -16,9 +16,11 @@ import type {
 	TaskScores
 } from '$lib/types';
 
-interface LeaderboardRow {
+export interface LeaderboardRow {
 	model: string;
 	revision: string;
+	model_type?: 'decision-model' | 'language-model' | 'classifier' | null;
+	base_model?: string | null;
 	model_url: string | null;
 	adapter: string;
 	probability_source: string;
@@ -313,12 +315,13 @@ function allTaskMeta(rows: readonly LeaderboardRow[], catalog: BenchmarkCatalog)
 
 function modelType(row: LeaderboardRow): ModelMeta['modelType'] {
 	if (row.open_weights === false) return 'api';
+	if (row.model_type) return row.model_type;
 	if (/deberta/i.test(row.model) || /deberta/i.test(row.adapter)) return 'classifier';
 	if (/qwen|bosun|jev|nimble|scorer/i.test(`${row.model} ${row.adapter}`)) return 'language-model';
 	return 'decision-model';
 }
 
-function toModelMeta(row: LeaderboardRow): ModelMeta {
+export function toModelMeta(row: LeaderboardRow): ModelMeta {
 	const separator = row.model.indexOf('/');
 	const org = separator >= 0 ? row.model.slice(0, separator) : '';
 	const displayName = separator >= 0 ? row.model.slice(separator + 1) : row.model;
@@ -329,6 +332,7 @@ function toModelMeta(row: LeaderboardRow): ModelMeta {
 		displayName,
 		org,
 		url: row.model_url ?? undefined,
+		baseModel: row.base_model ?? undefined,
 		zeroShotPct: 100,
 		activeParamsB: paramsB,
 		totalParamsB: paramsB,

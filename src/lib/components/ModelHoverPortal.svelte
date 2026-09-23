@@ -13,6 +13,7 @@
 		const m = row.model;
 		const out = [
 			{ k: 'Type', v: m.modelType },
+			...(m.baseModel ? [{ k: 'Base model', v: m.baseModel }] : []),
 			{ k: 'Active params', v: fmtParamsCompact(row.activeParamsB, ' ') },
 			{ k: 'Zero-shot', v: fmtZeroShot(row.zeroShotPct) },
 			{ k: 'Weights', v: m.openWeights ? 'Open' : 'Proprietary' },

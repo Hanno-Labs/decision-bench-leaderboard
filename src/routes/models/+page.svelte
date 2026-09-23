@@ -354,6 +354,9 @@
 								<span class="title">
 									<span class="org">{m.org}</span><span class="sep">/</span>{m.displayName}
 								</span>
+								{#if m.baseModel}
+									<span class="title-date">Based on {m.baseModel}</span>
+								{/if}
 								{#if m.releaseDate}
 									<span class="title-date">Released {m.releaseDate}</span>
 								{/if}
