@@ -19,3 +19,6 @@ The interactive leaderboard for DecisionBench, deployed from
 
 Reviewed result records are published from
 [`Hanno-Labs/decision-bench-results`](https://github.com/Hanno-Labs/decision-bench-results).
+
+Report leaderboard bugs and request features in the
+[central DecisionBench issue tracker](https://github.com/Hanno-Labs/decision-bench/issues).
