@@ -16,9 +16,10 @@ import type {
 	TaskScores
 } from '$lib/types';
 
-interface LeaderboardRow {
+export interface LeaderboardRow {
 	model: string;
 	revision: string;
+	model_type?: 'decision-model' | 'language-model' | 'classifier' | null;
 	model_url: string | null;
 	adapter: string;
 	probability_source: string;
@@ -313,12 +314,19 @@ function allTaskMeta(rows: readonly LeaderboardRow[], catalog: BenchmarkCatalog)
 
 function modelType(row: LeaderboardRow): ModelMeta['modelType'] {
 	if (row.open_weights === false) return 'api';
+	if (row.model_type) return row.model_type;
 	if (/deberta/i.test(row.model) || /deberta/i.test(row.adapter)) return 'classifier';
 	if (/qwen|bosun|jev|nimble|scorer/i.test(`${row.model} ${row.adapter}`)) return 'language-model';
 	return 'decision-model';
 }
 
-function toModelMeta(row: LeaderboardRow): ModelMeta {
+function baseModel(row: LeaderboardRow): string | undefined {
+	const match = row.model_url?.match(/^https:\/\/huggingface\.co\/([^/]+\/[^/?#]+)/);
+	const checkpoint = match?.[1];
+	return checkpoint && checkpoint !== row.model ? checkpoint : undefined;
+}
+
+export function toModelMeta(row: LeaderboardRow): ModelMeta {
 	const separator = row.model.indexOf('/');
 	const org = separator >= 0 ? row.model.slice(0, separator) : '';
 	const displayName = separator >= 0 ? row.model.slice(separator + 1) : row.model;
@@ -329,6 +337,7 @@ function toModelMeta(row: LeaderboardRow): ModelMeta {
 		displayName,
 		org,
 		url: row.model_url ?? undefined,
+		baseModel: baseModel(row),
 		zeroShotPct: 100,
 		activeParamsB: paramsB,
 		totalParamsB: paramsB,

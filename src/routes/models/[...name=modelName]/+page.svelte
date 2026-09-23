@@ -131,7 +131,7 @@
 
 <ShareMeta
 	title={model.displayName}
-	description={`${model.modelType} decision model · ${fmtParamsValue(model.totalParamsB)}${fmtParamsUnit(model.totalParamsB)} params${model.openWeights ? ' · open weights' : ' · proprietary'}`}
+	description={`${model.modelType} · ${fmtParamsValue(model.totalParamsB)}${fmtParamsUnit(model.totalParamsB)} params${model.openWeights ? ' · open weights' : ' · proprietary'}${model.baseModel ? ` · Based on ${model.baseModel}` : ''}`}
 />
 
 <main id="main-content" tabindex="-1" class="page">
@@ -185,6 +185,12 @@
 						{/if}
 					</dd>
 				</div>
+				{#if model.baseModel}
+					<div class="row">
+						<dt>Base model</dt>
+						<dd>{model.baseModel}</dd>
+					</div>
+				{/if}
 				{#if model.languages && model.languages.length > 0}
 					{@const PREVIEW = 12}
 					{@const langs = [...new Set(model.languages.map((l) => l.trim()).filter(Boolean))].sort(

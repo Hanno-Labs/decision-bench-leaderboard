@@ -129,6 +129,7 @@ export interface ModelMeta {
 	displayName: string;
 	org: string;
 	url?: string;
+	baseModel?: string;
 	zeroShotPct: number;
 	// Nullable: backend emits `null` for proprietary models that don't
 	// publish param counts.
