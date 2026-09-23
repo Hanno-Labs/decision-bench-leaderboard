@@ -4,6 +4,9 @@ The public leaderboard and result explorer for [DecisionBench](https://github.co
 
 This project is a maintained fork of the Apache-2.0 licensed [MTEB leaderboard frontend](https://github.com/embeddings-benchmark/leaderboard-frontend). It preserves MTEB's benchmark, task, model, comparison, filtering, charting, accessibility, and deep-linking facilities while adapting the data contract and terminology to typed decision models.
 
+Report leaderboard bugs and request features in the
+[central DecisionBench issue tracker](https://github.com/Hanno-Labs/decision-bench/issues).
+
 ## Development
 
 ```bash
