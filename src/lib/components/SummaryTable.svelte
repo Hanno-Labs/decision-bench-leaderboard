@@ -15,6 +15,10 @@
 			title: 'Model',
 			text: 'Missing results mean the model has not been evaluated on this benchmark slice. To submit results, see the [DecisionBench submission guide](https://github.com/Hanno-Labs/decision-bench/blob/main/docs/submitting-results.md).'
 		},
+		tags: {
+			title: 'Result tags',
+			text: '**compact**: A shorter rendering of the same benchmark rows. Candidate meaning, gold labels, and scoring are preserved.'
+		},
 		zeroShot: {
 			title: 'Zero-shot %',
 			text: "What portion of the benchmark a model has not been trained on. 100% means fully out-of-distribution; 50% means it was fine-tuned on half the tasks. '⚠️ NA' means we don't know."
@@ -163,6 +167,7 @@
 	type SortKey =
 		| 'rank'
 		| 'model'
+		| 'tags'
 		| 'totalParams'
 		| 'openness'
 		| 'zeroShot'
@@ -180,7 +185,7 @@
 	// active sort.
 	const sort = createSortState<SortKey>({
 		urlKeys: ['s.summary', 'd.summary'],
-		ascKeys: ['rank', 'model', 'ece', 'nll'],
+		ascKeys: ['rank', 'model', 'tags', 'ece', 'nll'],
 		defaultIcon: '↕'
 	});
 
@@ -190,6 +195,8 @@
 				return { v: row.rank, missing: false };
 			case 'model':
 				return { v: row.model.displayName.toLowerCase(), missing: false };
+			case 'tags':
+				return { v: row.tags ?? '', missing: !row.tags };
 			case 'totalParams':
 				return { v: row.totalParamsB ?? 0, missing: !row.totalParamsB };
 			case 'openness': {
@@ -598,6 +605,22 @@
 					</th>
 					<th
 						scope="col"
+						data-tip-title={INFO.tags.title}
+						data-tip={INFO.tags.text}
+						onpointerenter={showTip}
+						onpointerleave={hideTip}
+						onfocusin={showTip}
+						onfocusout={hideTip}
+						aria-sort={sort.aria('tags')}
+					>
+						<button class="sort-btn" onclick={() => sort.click('tags')}>
+							<span>Tags</span>
+							<InfoDot ariaLabel="What are result tags?" />
+							<span class="ind" class:on={sort.key === 'tags'}>{sort.icon('tags')}</span>
+						</button>
+					</th>
+					<th
+						scope="col"
 						class="tbl-num"
 						data-tip-title={INFO.totalParams.title}
 						data-tip={INFO.totalParams.text}
@@ -794,7 +817,7 @@
 				</tr>
 			</thead>
 			<tbody>
-				{#each renderedRows as row (row.model.name)}
+				{#each renderedRows as row (row.resultKey ?? row.model.name)}
 					<tr class:pinned={pinnedModels.has(row.model.name)}>
 						<td class="sticky-left">
 							<div class="rank-cell">
@@ -813,6 +836,9 @@
 						>
 							<ModelCellName model={row.model} />
 						</th>
+						<td
+							>{#if row.tags}<span class="result-tag">{row.tags}</span>{/if}</td
+						>
 						<td class="tbl-num param-cell" data-model-type={row.model.modelType}>
 							{fmtParamsValue(row.totalParamsB)}{#if fmtParamsUnit(row.totalParamsB)}<span
 									class="unit">{fmtParamsUnit(row.totalParamsB)}</span
@@ -939,6 +965,15 @@
 	   spans, etc.) sits as a block under the title. */
 	.tip-portal-body {
 		display: block;
+	}
+	.result-tag {
+		display: inline-block;
+		padding: 2px 7px;
+		border: 1px solid var(--border);
+		border-radius: 999px;
+		color: var(--text-muted);
+		font-size: 0.75rem;
+		font-weight: 600;
 	}
 
 	/* `.type-icon` + per-model-type tints, plus shared row hover, live in

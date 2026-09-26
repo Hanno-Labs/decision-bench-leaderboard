@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import catalog from '../../../static/benchmark-catalog.json';
 import rows from '../../../static/leaderboard.json';
 import {
@@ -70,6 +70,37 @@ describe('data-driven benchmark catalog', () => {
 		expect(nanoReasoning?.meanTask).toBeCloseTo(274 / 1200, 12);
 		expect(general.tasks).not.toContain('Family: Reasoning');
 		expect(reasoning.tasks).toEqual(['Family: Reasoning']);
+	});
+
+	it('keeps compact and untagged results for one model as separate leaderboard rows', async () => {
+		const modelName = 'C-Tianyu/NanoJev';
+		const compactRows = rows
+			.filter((row) => row.model === modelName)
+			.map((row) => ({ ...row, tags: 'compact' }));
+		const fetchWithCompact: typeof globalThis.fetch = async (input) => {
+			const url = String(input);
+			if (url.endsWith('/leaderboard.json')) return Response.json([...rows, ...compactRows]);
+			if (url.endsWith('/benchmark-catalog.json')) return Response.json(catalog);
+			return new Response(null, { status: 404, statusText: 'Not Found' });
+		};
+		const baseline = await loadSummary('DecisionBench(eng, v1)', undefined, fetchSnapshot);
+		vi.resetModules();
+		const { loadSummary: loadFreshSummary, loadBenchmarks: loadFreshBenchmarks } =
+			await import('./service');
+		const tagged = await loadFreshSummary('DecisionBench(eng, v1)', undefined, fetchWithCompact);
+		const baselineCount = (await loadBenchmarks(fetchSnapshot)).find(
+			(benchmark) => benchmark.name === 'DecisionBench(eng, v1)'
+		)?.numModels;
+		const taggedCount = (await loadFreshBenchmarks(fetchWithCompact)).find(
+			(benchmark) => benchmark.name === 'DecisionBench(eng, v1)'
+		)?.numModels;
+		const matches = tagged.rows.filter((row) => row.model.name === modelName);
+		expect(matches).toHaveLength(2);
+		expect(matches.map((row) => row.tags).sort()).toEqual(['', 'compact']);
+		expect(new Set(matches.map((row) => row.resultKey)).size).toBe(2);
+		expect(matches[0].meanTask).toBe(matches[1].meanTask);
+		expect(tagged.rows).toHaveLength(baseline.rows.length + 1);
+		expect(taggedCount).toBe(baselineCount);
 	});
 
 	it('carries calibration through suites without folding it into accuracy', async () => {

@@ -14,6 +14,10 @@ test('benchmark detail page loads the hero and the summary tab by default', asyn
 	// Summary tab is active by default; SummaryTable has a Model column header.
 	await expect(page.getByRole('tab', { name: 'Summary' })).toHaveAttribute('aria-selected', 'true');
 	await expect(page.locator('table thead').first()).toBeVisible();
+	const tagsHeader = page.getByRole('columnheader', { name: /Tags/ });
+	await expect(tagsHeader).toBeVisible();
+	await tagsHeader.hover();
+	await expect(page.getByText(/A shorter rendering of the same benchmark rows/)).toBeVisible();
 	const eceHeader = page.getByRole('columnheader', { name: /ECE/ });
 	await expect(eceHeader).toBeVisible();
 	await expect(page.getByRole('columnheader', { name: /NLL/ })).toBeVisible();
