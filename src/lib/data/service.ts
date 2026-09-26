@@ -19,6 +19,7 @@ import type {
 export interface LeaderboardRow {
 	model: string;
 	revision: string;
+	tags?: string;
 	model_type?: 'decision-model' | 'language-model' | 'classifier' | null;
 	model_url: string | null;
 	adapter: string;
@@ -370,20 +371,34 @@ export function toModelMeta(row: LeaderboardRow): ModelMeta {
 	};
 }
 
+function resultIdentity(row: LeaderboardRow): string {
+	return JSON.stringify([
+		row.model,
+		row.revision,
+		row.benchmark,
+		row.benchmark_version,
+		row.dataset_revision,
+		row.tags ?? ''
+	]);
+}
+
 function rowsByModel(rows: readonly LeaderboardRow[]): Map<string, LeaderboardRow[]> {
 	const grouped = new Map<string, LeaderboardRow[]>();
 	for (const row of rows) {
-		const list = grouped.get(row.model) ?? [];
+		const key = resultIdentity(row);
+		const list = grouped.get(key) ?? [];
 		list.push(row);
-		grouped.set(row.model, list);
+		grouped.set(key, list);
 	}
 	return grouped;
 }
 
 function benchmarkFor(definition: CatalogBenchmark, rows: readonly LeaderboardRow[]): Benchmark {
-	const modelCount = [...rowsByModel(rows).values()].filter(
-		(modelRows) => suiteRow(definition, modelRows)?.primary_accuracy != null
-	).length;
+	const modelCount = new Set(
+		[...rowsByModel(rows).values()]
+			.filter((modelRows) => suiteRow(definition, modelRows)?.primary_accuracy != null)
+			.map((modelRows) => modelRows[0].model)
+	).size;
 	return {
 		name: definition.name,
 		displayName: definition.displayName,
@@ -448,6 +463,8 @@ function summaryFor(
 		summaryRows.push({
 			rank: 0,
 			model,
+			resultKey: resultIdentity(current),
+			tags: current.tags ?? '',
 			zeroShotPct: 100,
 			activeParamsB: model.activeParamsB,
 			totalParamsB: model.totalParamsB,

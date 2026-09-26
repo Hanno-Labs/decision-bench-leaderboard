@@ -173,6 +173,8 @@ export interface ModelMeta {
 export interface SummaryRow {
 	rank: number;
 	model: ModelMeta;
+	resultKey?: string;
+	tags?: string;
 	zeroShotPct: number;
 	// Nullable: see ModelMeta — proprietary models leave param counts /
 	// architectural specs blank.
