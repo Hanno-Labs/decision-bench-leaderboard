@@ -178,6 +178,7 @@
 			}
 			if (complete && n > 0) score = sum / n;
 			return {
+				resultKey: r.resultKey,
 				model: r.model,
 				score,
 				expectedCalibrationError: r.expectedCalibrationError,

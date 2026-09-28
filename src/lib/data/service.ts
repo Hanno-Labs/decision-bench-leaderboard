@@ -670,6 +670,7 @@ export async function loadTaskScores(name: string, fetchFn?: FetchFn): Promise<T
 		splits: ['test'],
 		rows: matching.map((row, index) => ({
 			rank: index + 1,
+			resultKey: resultIdentity(row),
 			model: toModelMeta(row),
 			score: viewScoreOf(row),
 			expectedCalibrationError: row.expected_calibration_error,

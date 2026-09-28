@@ -98,6 +98,12 @@ describe('data-driven benchmark catalog', () => {
 		expect(matches).toHaveLength(2);
 		expect(matches.map((row) => row.tags).sort()).toEqual(['', 'compact']);
 		expect(new Set(matches.map((row) => row.resultKey)).size).toBe(2);
+		const task = await (
+			await import('./service')
+		).loadTaskScores('Family: Routing', fetchWithCompact);
+		const taskMatches = task.rows.filter((row) => row.model.name === modelName);
+		expect(taskMatches).toHaveLength(2);
+		expect(new Set(taskMatches.map((row) => row.resultKey)).size).toBe(2);
 		expect(matches[0].meanTask).toBe(matches[1].meanTask);
 		expect(tagged.rows).toHaveLength(baseline.rows.length + 1);
 		expect(taggedCount).toBe(baselineCount);
