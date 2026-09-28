@@ -72,6 +72,38 @@ describe('data-driven benchmark catalog', () => {
 		expect(reasoning.tasks).toEqual(['Family: Reasoning']);
 	});
 
+	it('uses the full domain row count when the catalog count is stale', async () => {
+		const coding = await loadSummary(
+			'DecisionBench(Coding Agents, eng, v1)',
+			undefined,
+			fetchSnapshot
+		);
+		const multiHop = await loadSummary(
+			'DecisionBench(Multi Hop Search, eng, v1)',
+			undefined,
+			fetchSnapshot
+		);
+		const codingScore = coding.rows.find((row) => row.model.name === 'typesafe/jev-1.13');
+		const multiHopScore = multiHop.rows.find((row) => row.model.name === 'typesafe/jev-1.13');
+
+		expect(codingScore?.meanTask).toBeCloseTo(196 / 300, 12);
+		expect(multiHopScore?.meanTask).toBeCloseTo(395 / 600, 12);
+		expect(codingScore?.meanTask).toBeLessThanOrEqual(1);
+		expect(multiHopScore?.meanTask).toBeLessThanOrEqual(1);
+	});
+
+	it('keeps every domain score within the accuracy range', async () => {
+		for (const benchmark of catalog.benchmarks.filter((item) =>
+			item.score.view.startsWith('domain:')
+		)) {
+			const summary = await loadSummary(benchmark.name, undefined, fetchSnapshot);
+			for (const row of summary.rows) {
+				expect(row.meanTask, `${benchmark.name}: ${row.model.name}`).toBeGreaterThanOrEqual(0);
+				expect(row.meanTask, `${benchmark.name}: ${row.model.name}`).toBeLessThanOrEqual(1);
+			}
+		}
+	});
+
 	it('keeps compact and untagged results for one model as separate leaderboard rows', async () => {
 		const modelName = 'C-Tianyu/NanoJev';
 		const compactRows = rows
