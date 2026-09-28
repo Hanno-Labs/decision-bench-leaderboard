@@ -103,6 +103,45 @@ describe('data-driven benchmark catalog', () => {
 		expect(taggedCount).toBe(baselineCount);
 	});
 
+	it('shows only the latest revision of a model in benchmark and task rankings', async () => {
+		const modelName = 'C-Tianyu/NanoJev';
+		const originalRows = rows.filter((row) => row.model === modelName);
+		const earlierRows = originalRows.map((row) => ({
+			...row,
+			submitted_at: '2026-09-26T14:03:12Z'
+		}));
+		const laterRows = originalRows.map((row) => ({
+			...row,
+			revision: 'later-revision',
+			submitted_at: '2026-09-26T14:05:41Z',
+			...(row.view === 'family:routing' ? { supported_accuracy: 0.9 } : {})
+		}));
+		const fetchWithRevisions: typeof globalThis.fetch = async (input) => {
+			const url = String(input);
+			if (url.endsWith('/leaderboard.json'))
+				return Response.json([
+					...rows.filter((row) => row.model !== modelName),
+					...earlierRows,
+					...laterRows
+				]);
+			if (url.endsWith('/benchmark-catalog.json')) return Response.json(catalog);
+			return new Response(null, { status: 404, statusText: 'Not Found' });
+		};
+
+		vi.resetModules();
+		const { loadSummary: loadFreshSummary, loadTaskScores: loadFreshTaskScores } =
+			await import('./service');
+		const summary = await loadFreshSummary('DecisionBench(eng, v1)', undefined, fetchWithRevisions);
+		const summaryRows = summary.rows.filter((row) => row.model.name === modelName);
+		expect(summaryRows).toHaveLength(1);
+		expect(summaryRows[0].resultKey).toContain('later-revision');
+
+		const task = await loadFreshTaskScores('Family: Routing', fetchWithRevisions);
+		const taskRows = task.rows.filter((row) => row.model.name === modelName);
+		expect(taskRows).toHaveLength(1);
+		expect(taskRows[0].score).toBe(0.9);
+	});
+
 	it('carries calibration through suites without folding it into accuracy', async () => {
 		const general = await loadSummary('DecisionBench(eng, v1)', undefined, fetchSnapshot);
 		const legal = await loadSummary('DecisionBench(Legal, eng, v1)', undefined, fetchSnapshot);
