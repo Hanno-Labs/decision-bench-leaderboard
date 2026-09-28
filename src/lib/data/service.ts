@@ -19,6 +19,7 @@ import type {
 export interface LeaderboardRow {
 	model: string;
 	revision: string;
+	submitted_at?: string;
 	tags?: string;
 	model_type?: 'decision-model' | 'language-model' | 'classifier' | null;
 	model_url: string | null;
@@ -133,13 +134,48 @@ function displayViewName(kind: string, name: string): string {
 	return titleCase(name);
 }
 
+function revisionGroup(row: LeaderboardRow): string {
+	return JSON.stringify([
+		row.model,
+		row.tags ?? '',
+		row.benchmark,
+		row.benchmark_version,
+		row.dataset_revision
+	]);
+}
+
+function currentRevisionRows(rows: LeaderboardRow[]): LeaderboardRow[] {
+	const current = new Map<string, { revision: string; submittedAt: number } | null>();
+	for (const row of rows) {
+		const group = revisionGroup(row);
+		const submittedAt = Date.parse(row.submitted_at ?? '');
+		if (!Number.isFinite(submittedAt)) {
+			current.set(group, null);
+			continue;
+		}
+		const selected = current.get(group);
+		if (selected === null && current.has(group)) continue;
+		if (
+			!selected ||
+			submittedAt > selected.submittedAt ||
+			(submittedAt === selected.submittedAt && row.revision > selected.revision)
+		) {
+			current.set(group, { revision: row.revision, submittedAt });
+		}
+	}
+	return rows.filter((row) => {
+		const selected = current.get(revisionGroup(row));
+		return selected == null || selected.revision === row.revision;
+	});
+}
+
 async function loadRows(fetchFn: FetchFn = globalThis.fetch): Promise<LeaderboardRow[]> {
 	if (!rowsPromise) {
 		rowsPromise = fetchFn(DATA_URL).then(async (response) => {
 			if (!response.ok) throw new HttpError(response.status, response.statusText, DATA_URL);
 			const value = (await response.json()) as unknown;
 			if (!Array.isArray(value)) throw new Error('leaderboard.json must contain an array');
-			return value as LeaderboardRow[];
+			return currentRevisionRows(value as LeaderboardRow[]);
 		});
 	}
 	return rowsPromise;
