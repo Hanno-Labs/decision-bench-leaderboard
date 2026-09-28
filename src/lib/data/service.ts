@@ -1,3 +1,4 @@
+import { building } from '$app/environment';
 import { base } from '$app/paths';
 import type {
 	Benchmark,
@@ -103,6 +104,23 @@ const CATALOG_URL = `${base}/benchmark-catalog.json`;
 const RESULTS_REPOSITORY = 'https://github.com/Hanno-Labs/decision-bench-results';
 const BENCHMARK_REPOSITORY = 'https://github.com/Hanno-Labs/decision-bench';
 
+const defaultFetch: FetchFn = async (input, init) => {
+	if (building) {
+		const file =
+			String(input) === DATA_URL
+				? 'static/leaderboard.json'
+				: String(input) === CATALOG_URL
+					? 'static/benchmark-catalog.json'
+					: null;
+		if (!file) throw new Error(`No static asset mapping for ${String(input)}`);
+		const { readFile } = await import('node:fs/promises');
+		return new Response(await readFile(file, 'utf8'), {
+			headers: { 'content-type': 'application/json' }
+		});
+	}
+	return globalThis.fetch(input, init);
+};
+
 let rowsPromise: Promise<LeaderboardRow[]> | null = null;
 let catalogPromise: Promise<BenchmarkCatalog> | null = null;
 
@@ -169,7 +187,7 @@ function currentRevisionRows(rows: LeaderboardRow[]): LeaderboardRow[] {
 	});
 }
 
-async function loadRows(fetchFn: FetchFn = globalThis.fetch): Promise<LeaderboardRow[]> {
+async function loadRows(fetchFn: FetchFn = defaultFetch): Promise<LeaderboardRow[]> {
 	if (!rowsPromise) {
 		rowsPromise = fetchFn(DATA_URL).then(async (response) => {
 			if (!response.ok) throw new HttpError(response.status, response.statusText, DATA_URL);
@@ -181,7 +199,7 @@ async function loadRows(fetchFn: FetchFn = globalThis.fetch): Promise<Leaderboar
 	return rowsPromise;
 }
 
-async function loadCatalog(fetchFn: FetchFn = globalThis.fetch): Promise<BenchmarkCatalog> {
+async function loadCatalog(fetchFn: FetchFn = defaultFetch): Promise<BenchmarkCatalog> {
 	if (!catalogPromise) {
 		catalogPromise = fetchFn(CATALOG_URL).then(async (response) => {
 			if (!response.ok) throw new HttpError(response.status, response.statusText, CATALOG_URL);
@@ -251,8 +269,13 @@ function suiteRow(
 		.filter((row): row is LeaderboardRow => row !== undefined);
 	if (exclusionRows.length !== (definition.score.exclude?.length ?? 0)) return undefined;
 
-	const baseRequested =
-		definition.score.expectedRows ?? baseRow.requested_rows ?? baseRow.successful_rows;
+	// Catalog counts can lag a result's exported view. Never divide its correct
+	// rows by fewer rows than the result actually attempted.
+	const baseRequested = Math.max(
+		definition.score.expectedRows ?? 0,
+		baseRow.requested_rows ?? 0,
+		baseRow.successful_rows
+	);
 	const excludedRequested = (definition.score.exclude ?? []).reduce(
 		(total, exclusion) => total + exclusion.expectedRows,
 		0
