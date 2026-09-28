@@ -270,6 +270,7 @@ export interface BenchmarkLeaders {
 
 export interface TaskScoreRow {
 	rank: number;
+	resultKey: string;
 	model: ModelMeta;
 	// `null` when the model wasn't evaluated on every subset of this task —
 	// rendering a partial-coverage mean would falsely outrank fully-scored

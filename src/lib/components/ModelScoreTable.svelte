@@ -7,6 +7,7 @@
 	 * per-subset scores. Sort + heat-shading are local to this component.
 	 */
 	export interface ModelScore {
+		resultKey: string;
 		model: ModelMeta;
 		score: number | null;
 		expectedCalibrationError?: number | null;
@@ -191,7 +192,7 @@
 			</tr>
 		</thead>
 		<tbody>
-			{#each sortedRows as s (s.model.name + s.benchmarkName)}
+			{#each sortedRows as s (s.resultKey)}
 				<tr>
 					<td class="tbl-num sticky-rank">
 						<span class="rank-pill">#{s.rank}</span>
